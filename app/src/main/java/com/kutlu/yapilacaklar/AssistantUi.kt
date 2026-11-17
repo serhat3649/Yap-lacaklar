@@ -22,6 +22,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -96,6 +100,7 @@ fun AssistantScreen(onDataChanged: () -> Unit, autoPrompt: String?, onAutoPrompt
     var confirmClear by remember { mutableStateOf(false) }
     var hasKey by remember { mutableStateOf(AssistantSettings.apiKey(ctx).isNotBlank()) }
     val listState = rememberLazyListState()
+    val imeOpen = WindowInsets.ime.getBottom(LocalDensity.current) > 0
 
     fun send(text: String) {
         val t = text.trim()
@@ -157,10 +162,10 @@ fun AssistantScreen(onDataChanged: () -> Unit, autoPrompt: String?, onAutoPrompt
 
     Column(Modifier.fillMaxSize().imePadding()) {
         // Başlık
-        Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 4.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 4.dp, top = if (imeOpen) 2.dp else 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Pusula", fontSize = 26.sp, fontWeight = FontWeight.Bold)
-                Text(
+                Text("Pusula", fontSize = if (imeOpen) 18.sp else 26.sp, fontWeight = FontWeight.Bold)
+                if (!imeOpen) Text(
                     if (AssistantSettings.model(ctx) == AssistantSettings.MODEL_FAST) "Claude Haiku · hızlı" else "Claude Sonnet",
                     fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 )
@@ -178,7 +183,7 @@ fun AssistantScreen(onDataChanged: () -> Unit, autoPrompt: String?, onAutoPrompt
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            if (messages.isEmpty()) {
+            if (messages.isEmpty() && !imeOpen) {
                 item { Welcome(hasKey) { showSettings = true } }
             }
             items(messages.size) { i -> Bubble(messages[i]) }
@@ -191,8 +196,8 @@ fun AssistantScreen(onDataChanged: () -> Unit, autoPrompt: String?, onAutoPrompt
             }
         }
 
-        // Hızlı sorular
-        Row(
+        // Hızlı sorular (klavye açıkken gizli)
+        if (!imeOpen) Row(
             Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
@@ -203,7 +208,7 @@ fun AssistantScreen(onDataChanged: () -> Unit, autoPrompt: String?, onAutoPrompt
 
         // Giriş satırı
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
+            Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = if (imeOpen) 4.dp else 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             OutlinedTextField(
@@ -297,7 +302,7 @@ private fun Bubble(m: ChatMsg) {
                 else -> MaterialTheme.colorScheme.surface
             },
             border = if (mine) null else BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
-            modifier = Modifier.widthIn(max = 320.dp),
+            modifier = Modifier.widthIn(max = (LocalConfiguration.current.screenWidthDp * 0.86f).dp),
         ) {
             SelectionContainer {
                 Text(

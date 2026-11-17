@@ -9,6 +9,11 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.ime
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -78,6 +83,7 @@ class MainActivity : FragmentActivity() {
 
     private val askNotif = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
+    @OptIn(ExperimentalLayoutApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -107,10 +113,11 @@ class MainActivity : FragmentActivity() {
                     }
                     return@AppTheme
                 }
+                val imeOpen = WindowInsets.ime.getBottom(LocalDensity.current) > 0
                 Scaffold(
                     containerColor = MaterialTheme.colorScheme.background,
                     bottomBar = {
-                        NavigationBar {
+                        if (!imeOpen) NavigationBar {
                             listOf("🤖" to "Asistan", "✅" to "İşler", "🕌" to "Namaz", "📖" to "Kitap", "💰" to "Harcama").forEachIndexed { i, (icon, label) ->
                                 NavigationBarItem(
                                     selected = tab == i,
@@ -122,7 +129,7 @@ class MainActivity : FragmentActivity() {
                         }
                     },
                 ) { pad ->
-                    Box(Modifier.fillMaxSize().padding(pad)) {
+                    Box(Modifier.fillMaxSize().padding(pad).consumeWindowInsets(pad)) {
                         when (tab) {
                             0 -> AssistantScreen(
                                 onDataChanged = { tasks = TaskStore.load(this@MainActivity) },

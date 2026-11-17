@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -80,6 +81,7 @@ fun ExpenseScreen() {
     var catsVersion by remember { mutableIntStateOf(0) }
     val emojiMap = remember(catsVersion) { ExpenseCats.emojiMap(ctx) }
     var showAllMonths by remember { mutableStateOf(false) }
+    var catFilter by remember { mutableStateOf<String?>(null) }
 
     fun saveExpense(e: Expense) {
         val l = list.toMutableList()
@@ -141,6 +143,25 @@ fun ExpenseScreen() {
                 }
             }
 
+            // Kategori filtresi
+            val usedCats = list.groupBy { it.cat }.mapValues { (_, v) -> v.sumOf { it.amount } }
+                .toList().sortedByDescending { it.second }.map { it.first }
+            if (usedCats.isNotEmpty()) item(key = "catchips") {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    item {
+                        FilterChip(selected = catFilter == null, onClick = { catFilter = null }, label = { Text("Tümü") })
+                    }
+                    items(usedCats) { c ->
+                        FilterChip(
+                            selected = catFilter == c,
+                            onClick = { catFilter = if (catFilter == c) null else c },
+                            label = { Text("${emojiMap[c] ?: "🏷"} $c") },
+                        )
+                    }
+                }
+            }
+
+            if (catFilter == null) {
             // Ay seçici
             item {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -281,10 +302,11 @@ fun ExpenseScreen() {
             if (byCat.isNotEmpty()) item {
                 ExCard {
                     Text("Kategoriler", fontWeight = FontWeight.SemiBold)
+                    Text("Ayrıntı için kategoriye dokun", fontSize = 11.sp, color = dim)
                     Spacer(Modifier.height(8.dp))
                     byCat.forEach { (c, v) ->
                         val frac = (v / total).toFloat()
-                        Row(Modifier.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(Modifier.clickable { catFilter = c }.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                             Text("${emojiMap[c] ?: "🏷"} $c", fontSize = 14.sp, modifier = Modifier.width(110.dp))
                             Box(Modifier.weight(1f).height(10.dp).background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(5.dp))) {
                                 Box(Modifier.fillMaxWidth(frac).fillMaxHeight()
@@ -327,6 +349,67 @@ fun ExpenseScreen() {
                                 Column(Modifier.weight(1f)) {
                                     Text(e.note.ifBlank { e.cat }, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     Text(e.cat + " · " + SimpleDateFormat("HH:mm", TRE).format(Date(e.time)), fontSize = 12.sp, color = dim)
+                                }
+                                Text(tl(e.amount), fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                    }
+                }
+            }
+            } else {
+                // ---------- Tek kategori görünümü: tüm zamanlar, tarih tarih ----------
+                val cf = catFilter!!
+                val catItems = list.filter { it.cat == cf }.sortedByDescending { it.time }
+                val catTotal = catItems.sumOf { it.amount }
+                item(key = "cat_head") {
+                    ExCard {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("${emojiMap[cf] ?: "🏷"} $cf", fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                            TextButton(onClick = { catFilter = null }) { Text("Kapat") }
+                        }
+                        Text("Tüm zamanlar", fontSize = 12.sp, color = dim)
+                        Text(tl(catTotal), fontSize = 28.sp, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.height(8.dp))
+                        Row {
+                            Column(Modifier.weight(1f)) {
+                                Text(tl(ExpenseStore.sum(catItems, ExpenseStore.monthRange(0))), fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                                Text("bu ay", fontSize = 12.sp, color = dim)
+                            }
+                            Column(Modifier.weight(1f)) {
+                                Text("${catItems.size}", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                                Text("kayıt", fontSize = 12.sp, color = dim)
+                            }
+                            Column(Modifier.weight(1f)) {
+                                Text(tl(if (catItems.isEmpty()) 0.0 else catTotal / catItems.size), fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                                Text("ortalama", fontSize = 12.sp, color = dim)
+                            }
+                        }
+                    }
+                }
+                val byMonth = catItems.groupBy { SimpleDateFormat("yyyy-MM", Locale.US).format(Date(it.time)) }
+                byMonth.forEach { (mk, mItems) ->
+                    item(key = "cm_$mk") {
+                        Row(Modifier.padding(start = 4.dp, top = 10.dp)) {
+                            Text(SimpleDateFormat("MMMM yyyy", TRE).format(Date(mItems.first().time)).uppercase(TRE),
+                                fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = dim, modifier = Modifier.weight(1f))
+                            Text(tl(mItems.sumOf { it.amount }), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = dim)
+                        }
+                    }
+                    items(mItems, key = { "c_" + it.id }) { e ->
+                        Card(
+                            onClick = { editing = e; showEditor = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
+                        ) {
+                            Row(Modifier.padding(horizontal = 14.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(SimpleDateFormat("d MMMM yyyy, EEEE", TRE).format(Date(e.time)), fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                                    Text(
+                                        SimpleDateFormat("HH:mm", TRE).format(Date(e.time)) + (if (e.note.isNotBlank()) " · " + e.note else ""),
+                                        fontSize = 12.sp, color = dim, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                    )
                                 }
                                 Text(tl(e.amount), fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                             }
