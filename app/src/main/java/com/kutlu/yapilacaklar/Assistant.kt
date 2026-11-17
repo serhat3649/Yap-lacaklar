@@ -110,7 +110,7 @@ Kurallar:
 - Kullanıcı bir iş, hatırlatma, randevu veya "şunu yapmam lazım" dediğinde add_task ile ekle. "Yarın", "cuma", "akşam" gibi ifadeleri şu anki tarihe göre gerçek tarihe çevir. Saat söylenmezse sadece tarih ver (bildirim 09:00'da gelir). Tarih varsa hatırlatmayı aç.
 - Öncelik söylenmezse "normal", kategori söylenmezse içeriğe göre seç (İş, Proje, Şantiye, Teklif, Kişisel).
 - "Öğleyi kıldım", "bugün 30 sayfa okudum" gibi cümlelerde ilgili kaydı yap.
-- "Mazota 1500 lira verdim", "öğle yemeği 350" gibi harcamaları add_expense ile kaydet; kategoriyi içerikten seç (${EXPENSE_CATS.joinToString()}). Tutar TL'dir. Harcama soruları için expense_summary kullan; tutarları 1.250,50 ₺ biçiminde yaz.
+- "Mazota 1500 lira verdim", "öğle yemeği 350" gibi harcamaları add_expense ile kaydet; kategoriyi içerikten seç (${ExpenseCats.all(ctx).joinToString()}); kullanıcı yeni kategori isterse add_expense_category kullan. Tutar TL'dir. Harcama soruları için expense_summary kullan; tutarları 1.250,50 ₺ biçiminde yaz.
 - İşi tamamladığını söylerse önce list_tasks ile bul, sonra update_task ile done=true yap. Emin değilsen sor.
 - Brifing veya gün planı istenince önce get_overview çağır; planı saat aralıklarıyla, acil ve geciken işler önde olacak şekilde öner.
 - Yaptığın değişikliği tek cümleyle teyit et (ör. "✅ Yarın 09:00 için eklendi: Murat'ı ara").
@@ -135,7 +135,7 @@ Kurallar:
             })
         }
 
-    private val tools: JSONArray by lazy {
+    private fun tools(ctx: Context): JSONArray = run {
         JSONArray().apply {
             put(tool("get_overview", "Bugünün özeti: aktif/bugünkü/geciken işler, bugün ve dün namaz durumu, okuma hedefi ve serisi, okunan kitaplar."))
             put(tool("list_tasks", "İşleri listeler.", JSONObject().apply {
@@ -176,10 +176,14 @@ Kurallar:
             }))
             put(tool("add_expense", "Harcama kaydeder (TL).", JSONObject().apply {
                 put("amount", prop("number", "Tutar (TL)"))
-                put("category", prop("string", "Kategori", EXPENSE_CATS))
+                put("category", prop("string", "Kategori", ExpenseCats.all(ctx)))
                 put("note", prop("string", "Kısa açıklama (ör. 'Shell mazot', 'öğle yemeği')"))
                 put("date", prop("string", "Ne zaman: 'YYYY-MM-DDTHH:mm' veya 'YYYY-MM-DD'; boşsa şimdi"))
             }, listOf("amount", "category")))
+            put(tool("add_expense_category", "Harcamalar için yeni kategori ekler.", JSONObject().apply {
+                put("name", prop("string", "Kategori adı (ör. 'Kafe', 'Çocuk')"))
+                put("emoji", prop("string", "Tek bir uygun emoji"))
+            }, listOf("name")))
             put(tool("expense_summary", "Bir ayın harcama özeti: toplam, günlük ortalama, kategori dağılımı, son kayıtlar (id'leriyle).", JSONObject().apply {
                 put("month", prop("string", "Ay 'YYYY-MM' (varsayılan bu ay)"))
             }))
@@ -273,7 +277,7 @@ Kurallar:
                 put("model", AssistantSettings.model(ctx))
                 put("max_tokens", 4096)
                 put("system", systemPrompt(ctx))
-                put("tools", tools)
+                put("tools", tools(ctx))
                 put("messages", msgs)
             }
             val resp = post(key, body)
@@ -531,7 +535,7 @@ object Tools {
             } ?: System.currentTimeMillis()
             val e = Expense(
                 amount = amount,
-                cat = input.optString("category", "Diğer").takeIf { it in EXPENSE_CATS } ?: "Diğer",
+                cat = input.optString("category", "Diğer").takeIf { it in ExpenseCats.all(ctx) } ?: "Diğer",
                 note = input.optString("note", "").trim().take(200),
                 time = whenMs,
             )
@@ -570,6 +574,12 @@ object Tools {
                     }
                 })
             }.toString() to false
+        }
+
+        "add_expense_category" -> {
+            val n = input.getString("name")
+            if (ExpenseCats.add(ctx, n, input.optString("emoji", "🏷"))) "Kategori eklendi: $n. Mevcut kategoriler: ${ExpenseCats.all(ctx).joinToString()}" to true
+            else "Bu kategori zaten var: $n" to false
         }
 
         "delete_expense" -> {

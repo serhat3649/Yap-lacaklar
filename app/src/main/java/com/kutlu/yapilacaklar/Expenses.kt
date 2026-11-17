@@ -103,3 +103,40 @@ fun parseAmount(s: String): Double? {
     }
     return v.toDoubleOrNull()?.takeIf { it > 0 }
 }
+
+/** Hazır kategoriler + kullanıcının eklediği kategoriler. */
+object ExpenseCats {
+    private fun prefs(ctx: Context) = ctx.getSharedPreferences("expense_cats", Context.MODE_PRIVATE)
+
+    /** (ad, emoji) */
+    fun custom(ctx: Context): List<Pair<String, String>> = try {
+        val a = JSONArray(prefs(ctx).getString("list", "[]"))
+        List(a.length()) { a.getJSONObject(it).let { o -> o.getString("name") to o.optString("emoji", "🏷") } }
+    } catch (e: Exception) {
+        emptyList()
+    }
+
+    private fun saveCustom(ctx: Context, l: List<Pair<String, String>>) {
+        val a = JSONArray()
+        l.forEach { (n, e) -> a.put(JSONObject().put("name", n).put("emoji", e)) }
+        prefs(ctx).edit().putString("list", a.toString()).apply()
+    }
+
+    /** Tüm kategoriler; "Diğer" her zaman en sonda. */
+    fun all(ctx: Context): List<String> =
+        EXPENSE_CATS.filter { it != "Diğer" } + custom(ctx).map { it.first } + "Diğer"
+
+    fun emojiMap(ctx: Context): Map<String, String> = EXPENSE_EMOJI + custom(ctx).toMap()
+
+    fun isCustom(ctx: Context, name: String) = custom(ctx).any { it.first == name }
+
+    /** Aynı isimde kategori varsa false döner. */
+    fun add(ctx: Context, name: String, emoji: String): Boolean {
+        val n = name.trim().replaceFirstChar { it.titlecase(Locale.forLanguageTag("tr-TR")) }
+        if (n.isEmpty() || all(ctx).any { it.equals(n, ignoreCase = true) }) return false
+        saveCustom(ctx, custom(ctx) + (n to emoji.trim().ifEmpty { "🏷" }.take(4)))
+        return true
+    }
+
+    fun remove(ctx: Context, name: String) = saveCustom(ctx, custom(ctx).filterNot { it.first == name })
+}

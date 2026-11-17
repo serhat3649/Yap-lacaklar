@@ -28,6 +28,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -75,6 +76,8 @@ fun ExpenseScreen() {
     var editing by remember { mutableStateOf<Expense?>(null) }
     var showEditor by remember { mutableStateOf(false) }
     val dim = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+    var catsVersion by remember { mutableIntStateOf(0) }
+    val emojiMap = remember(catsVersion) { ExpenseCats.emojiMap(ctx) }
 
     fun saveExpense(e: Expense) {
         val l = list.toMutableList()
@@ -220,7 +223,7 @@ fun ExpenseScreen() {
                     byCat.forEach { (c, v) ->
                         val frac = (v / total).toFloat()
                         Row(Modifier.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text("${EXPENSE_EMOJI[c] ?: "📦"} $c", fontSize = 14.sp, modifier = Modifier.width(110.dp))
+                            Text("${emojiMap[c] ?: "🏷"} $c", fontSize = 14.sp, modifier = Modifier.width(110.dp))
                             Box(Modifier.weight(1f).height(10.dp).background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(5.dp))) {
                                 Box(Modifier.fillMaxWidth(frac).fillMaxHeight()
                                     .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(5.dp)))
@@ -257,7 +260,7 @@ fun ExpenseScreen() {
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
                         ) {
                             Row(Modifier.padding(horizontal = 14.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Text(EXPENSE_EMOJI[e.cat] ?: "📦", fontSize = 20.sp)
+                                Text(emojiMap[e.cat] ?: "🏷", fontSize = 20.sp)
                                 Spacer(Modifier.width(10.dp))
                                 Column(Modifier.weight(1f)) {
                                     Text(e.note.ifBlank { e.cat }, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -275,9 +278,9 @@ fun ExpenseScreen() {
     if (showEditor) {
         ExpenseEditor(
             initial = editing,
-            onDismiss = { showEditor = false },
-            onSave = { saveExpense(it); showEditor = false },
-            onDelete = { deleteExpense(it); showEditor = false },
+            onDismiss = { showEditor = false; catsVersion++ },
+            onSave = { saveExpense(it); showEditor = false; catsVersion++ },
+            onDelete = { deleteExpense(it); showEditor = false; catsVersion++ },
         )
     }
 }
@@ -300,6 +303,11 @@ private fun ExpenseEditor(initial: Expense?, onDismiss: () -> Unit, onSave: (Exp
     }
     var cat by remember { mutableStateOf(initial?.cat ?: "Yemek") }
     var note by remember { mutableStateOf(initial?.note ?: "") }
+    var cats by remember { mutableStateOf(ExpenseCats.all(ctx)) }
+    var emojis by remember { mutableStateOf(ExpenseCats.emojiMap(ctx)) }
+    var showNewCat by remember { mutableStateOf(false) }
+    var showManage by remember { mutableStateOf(false) }
+    fun refreshCats() { cats = ExpenseCats.all(ctx); emojis = ExpenseCats.emojiMap(ctx) }
     var whenMs by remember { mutableLongStateOf(initial?.time ?: System.currentTimeMillis()) }
     val parsed = parseAmount(amount)
 
@@ -317,11 +325,18 @@ private fun ExpenseEditor(initial: Expense?, onDismiss: () -> Unit, onSave: (Exp
                 )
                 Text("Kategori", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    EXPENSE_CATS.chunked(5).forEach { row ->
+                    (cats + "+").chunked(4).forEach { row ->
                         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             row.forEach { c ->
-                                FilterChip(selected = cat == c, onClick = { cat = c },
-                                    label = { Text("${EXPENSE_EMOJI[c]} $c") })
+                                if (c == "+") {
+                                    AssistChip(onClick = { showNewCat = true }, label = { Text("➕ Yeni") })
+                                    if (ExpenseCats.custom(ctx).isNotEmpty()) {
+                                        AssistChip(onClick = { showManage = true }, label = { Text("✏️ Düzenle") })
+                                    }
+                                } else {
+                                    FilterChip(selected = cat == c, onClick = { cat = c },
+                                        label = { Text("${emojis[c] ?: "🏷"} $c") })
+                                }
                             }
                         }
                     }
@@ -366,4 +381,66 @@ private fun ExpenseEditor(initial: Expense?, onDismiss: () -> Unit, onSave: (Exp
             }
         },
     )
+
+    if (showNewCat) {
+        var name by remember { mutableStateOf("") }
+        var emoji by remember { mutableStateOf("") }
+        var err by remember { mutableStateOf(false) }
+        AlertDialog(
+            onDismissRequest = { showNewCat = false },
+            title = { Text("Yeni kategori") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = name, onValueChange = { name = it.take(24); err = false }, singleLine = true,
+                        label = { Text("Kategori adı") }, modifier = Modifier.fillMaxWidth(),
+                        isError = err,
+                        supportingText = { if (err) Text("Bu isimde kategori zaten var") },
+                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                    )
+                    OutlinedTextField(
+                        value = emoji, onValueChange = { emoji = it.take(4) }, singleLine = true,
+                        label = { Text("Emoji (isteğe bağlı, ör. ☕)") }, modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(enabled = name.isNotBlank(), onClick = {
+                    if (ExpenseCats.add(ctx, name, emoji)) {
+                        refreshCats()
+                        cat = cats.firstOrNull { it.equals(name.trim(), ignoreCase = true) } ?: cat
+                        showNewCat = false
+                    } else err = true
+                }) { Text("Ekle") }
+            },
+            dismissButton = { TextButton(onClick = { showNewCat = false }) { Text("Vazgeç") } },
+        )
+    }
+
+    if (showManage) {
+        AlertDialog(
+            onDismissRequest = { showManage = false },
+            title = { Text("Kategorilerim") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    val mine = ExpenseCats.custom(ctx)
+                    if (mine.isEmpty()) Text("Eklediğin kategori yok.")
+                    mine.forEach { (n, e) ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("$e $n", modifier = Modifier.weight(1f), fontSize = 15.sp)
+                            TextButton(onClick = {
+                                ExpenseCats.remove(ctx, n); refreshCats()
+                                if (cat == n) cat = "Diğer"
+                                if (ExpenseCats.custom(ctx).isEmpty()) showManage = false
+                            }) { Text("Sil", color = EX_RED) }
+                        }
+                    }
+                    Text("Silinen kategorideki eski harcamalar silinmez, adıyla kalır.", fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                }
+            },
+            confirmButton = { TextButton(onClick = { showManage = false }) { Text("Tamam") } },
+        )
+    }
+
 }
