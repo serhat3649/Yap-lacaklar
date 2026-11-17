@@ -76,6 +76,11 @@ class MainActivity : FragmentActivity() {
         i.removeExtra(Brief.EXTRA_PROMPT)
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putInt("tab", tab)
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         readIntent(intent)
@@ -90,7 +95,7 @@ class MainActivity : FragmentActivity() {
         Reminders.ensureChannel(this)
         tasks = TaskStore.load(this)
         locked = savedInstanceState == null && AppLock.active(this)
-        if (savedInstanceState == null) readIntent(intent)
+        if (savedInstanceState == null) readIntent(intent) else tab = savedInstanceState.getInt("tab", 0)
         Brief.schedule(this)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !Reminders.canNotify(this)) {

@@ -109,7 +109,8 @@ Kurallar:
 - Her zaman Türkçe, samimi, kısa ve net yaz. Gerekirse madde madde.
 - Kullanıcı bir iş, hatırlatma, randevu veya "şunu yapmam lazım" dediğinde add_task ile ekle. "Yarın", "cuma", "akşam" gibi ifadeleri şu anki tarihe göre gerçek tarihe çevir. Saat söylenmezse sadece tarih ver (bildirim 09:00'da gelir). Tarih varsa hatırlatmayı aç.
 - Öncelik söylenmezse "normal", kategori söylenmezse içeriğe göre seç (İş, Proje, Şantiye, Teklif, Kişisel).
-- "Öğleyi kıldım", "bugün 30 sayfa okudum" gibi cümlelerde ilgili kaydı yap.
+- "Öğleyi kıldım" gibi cümlelerde namaz kaydını yap.
+- Okuma: Kullanıcı kitap adı SÖYLEMEDEN "30 sayfa okudum" derse log_reading'i book_title OLMADAN çağır (sadece günlük okumaya eklenir, hiçbir kitaba işlenmez). Kitap adı söylerse ("Suç ve Ceza'dan 30 sayfa okudum") log_reading'e book_title ver; "X kitabında 120. sayfadayım" derse set_book_page kullan. Kitap bulunamazsa kullanıcıya kitabı ekleyip eklemeyeceğini ve toplam sayfa sayısını sor.
 - "Mazota 1500 lira verdim", "öğle yemeği 350" gibi harcamaları add_expense ile kaydet; kategoriyi içerikten seç (${ExpenseCats.all(ctx).joinToString()}); kullanıcı yeni kategori isterse add_expense_category kullan. Tutar TL'dir. Harcama soruları için expense_summary kullan; tutarları 1.250,50 ₺ biçiminde yaz.
 - İşi tamamladığını söylerse önce list_tasks ile bul, sonra update_task ile done=true yap. Emin değilsen sor.
 - Brifing veya gün planı istenince önce get_overview çağır; planı saat aralıklarıyla, acil ve geciken işler önde olacak şekilde öner.
@@ -204,14 +205,14 @@ Kurallar:
                 put("total_pages", prop("integer", "Toplam sayfa"))
                 put("current_page", prop("integer", "Şu anki sayfa (varsayılan 0)"))
             }, listOf("title", "total_pages")))
-            put(tool("log_reading", "Bugün okunan sayfa sayısını kaydeder. book_id verilirse kitabın sayfası da ilerler.", JSONObject().apply {
+            put(tool("log_reading", "Bugün okunan sayfa sayısını günlük okumaya ekler. Kullanıcı kitap adı söylediyse book_title ver; o kitabın sayfası da ilerler. Kitap adı söylenmediyse book_title verme.", JSONObject().apply {
                 put("pages", prop("integer", "Okunan sayfa sayısı"))
-                put("book_id", prop("string", "İsteğe bağlı kitap id'si"))
+                put("book_title", prop("string", "Kullanıcının söylediği kitap adı (tam olmasa da olur)"))
             }, listOf("pages")))
             put(tool("set_book_page", "Kitapta gelinen sayfayı ayarlar; aradaki fark bugünkü okumaya eklenir.", JSONObject().apply {
-                put("book_id", prop("string", "Kitap id'si"))
+                put("book_title", prop("string", "Kitap adı (tam olmasa da olur)"))
                 put("page", prop("integer", "Gelinen sayfa"))
-            }, listOf("book_id", "page")))
+            }, listOf("book_title", "page")))
         }
     }
 
@@ -396,7 +397,26 @@ object Tools {
         return "kılınan: ${done.joinToString().ifEmpty { "yok" }}; eksik: ${missing.joinToString().ifEmpty { "yok" }}"
     }
 
-    fun run(ctx: Context, name: String, input: JSONObject): Pair<String, Boolean> = when (name) {
+    /** Kitabı id'sine ya da (kısmi) adına göre bulur; önce okunmakta olanlara bakar. -1: yok */
+    private fun findBook(books: List<Book>, q: String): Int {
+        val query = norm(q)
+        if (query.isEmpty()) return -1
+        books.indexOfFirst { it.id == q }.let { if (it >= 0) return it }
+        val order = books.indices.sortedBy { if (books[it].done) 1 else 0 }
+        order.firstOrNull { norm(books[it].title) == query }?.let { return it }
+        order.firstOrNull { norm(books[it].title).startsWith(query) || query.startsWith(norm(books[it].title)) }?.let { return it }
+        order.firstOrNull { norm(books[it].title).contains(query) || query.contains(norm(books[it].title)) }?.let { return it }
+        // kelime eşleşmesi: sorgudaki 3+ harfli kelimelerin hepsi başlıkta geçiyorsa
+        val words = query.split(' ').filter { it.length >= 3 }
+        if (words.isNotEmpty()) order.firstOrNull { idx -> words.all { norm(books[idx].title).contains(it) } }?.let { return it }
+        return -1
+    }
+
+    private fun norm(s: String) = s.lowercase(Locale.forLanguageTag("tr-TR"))
+        .replace(Regex("[^\\p{L}\\p{N} ]"), " ").replace(Regex("\\s+"), " ").trim()
+
+    fun run(ctx: Context, name: String, input: JSONObject): Pair<String, Boolean> {
+        return when (name) {
         "get_overview" -> overview(ctx) to false
 
         "list_tasks" -> {
@@ -497,7 +517,7 @@ object Tools {
             val a = JSONArray()
             TrackStore.loadBooks(ctx).forEach { b ->
                 a.put(JSONObject().apply {
-                    put("id", b.id); put("title", b.title); put("author", b.author)
+                    put("title", b.title); put("author", b.author)
                     put("total_pages", b.total); put("current_page", b.current); put("done", b.done)
                 })
             }
@@ -517,18 +537,21 @@ object Tools {
 
         "log_reading" -> {
             val pages = input.getInt("pages")
-            val bookId = input.optString("book_id", "")
-            var bookNote = ""
-            if (bookId.isNotBlank()) {
+            val title = input.optString("book_title", "").ifBlank { input.optString("book_id", "") }
+            var bookNote = " · Hiçbir kitaba işlenmedi (genel okuma)."
+            if (title.isNotBlank()) {
                 val books = TrackStore.loadBooks(ctx).toMutableList()
-                val i = books.indexOfFirst { it.id == bookId }
-                if (i >= 0) {
-                    val b = books[i]
-                    val np = (b.current + pages).coerceIn(0, b.total)
-                    books[i] = b.copy(current = np, finishedAt = if (np >= b.total) System.currentTimeMillis() else 0L)
-                    TrackStore.saveBooks(ctx, books)
-                    bookNote = " · ${b.title}: sayfa $np/${b.total}"
+                val i = findBook(books, title)
+                if (i < 0) {
+                    return "Kitap bulunamadı: \"$title\". KAYIT YAPILMADI. Listedeki kitaplar: " +
+                        books.joinToString { it.title }.ifEmpty { "yok" } +
+                        ". Kullanıcıya kitabı ekleyip eklemeyeceğini (toplam sayfa ile) ya da genel okumaya mı yazılacağını sor." to false
                 }
+                val b = books[i]
+                val np = (b.current + pages).coerceIn(0, b.total)
+                books[i] = b.copy(current = np, finishedAt = if (np >= b.total) System.currentTimeMillis() else 0L)
+                TrackStore.saveBooks(ctx, books)
+                bookNote = " · ${b.title}: sayfa $np/${b.total}" + if (np >= b.total) " (kitap bitti 🎉)" else ""
             }
             val k = TrackStore.dayKey()
             val log = TrackStore.loadReadLog(ctx)
@@ -538,11 +561,12 @@ object Tools {
         }
 
         "set_book_page" -> {
-            val id = input.getString("book_id")
+            val title = input.optString("book_title", "").ifBlank { input.optString("book_id", "") }
             val page = input.getInt("page")
             val books = TrackStore.loadBooks(ctx).toMutableList()
-            val i = books.indexOfFirst { it.id == id }
-            if (i < 0) throw IllegalArgumentException("Kitap bulunamadı: $id")
+            val i = findBook(books, title)
+            if (i < 0) return "Kitap bulunamadı: \"$title\". KAYIT YAPILMADI. Listedeki kitaplar: " +
+                books.joinToString { it.title }.ifEmpty { "yok" } + ". Kullanıcıya kitabı eklemek isteyip istemediğini sor." to false
             val b = books[i]
             val np = page.coerceIn(0, b.total)
             books[i] = b.copy(current = np, finishedAt = if (np >= b.total) System.currentTimeMillis() else 0L)
@@ -642,6 +666,7 @@ object Tools {
         }
 
         else -> "Bilinmeyen araç: $name" to false
+        }
     }
 
     fun overview(ctx: Context): String {
