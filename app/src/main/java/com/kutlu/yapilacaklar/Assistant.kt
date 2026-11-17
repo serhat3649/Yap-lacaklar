@@ -245,6 +245,23 @@ Kurallar:
         }
     }
 
+    /** Asistan mesajlarındaki thinking / redacted_thinking bloklarını çıkarır. */
+    private fun stripThinking(msgs: JSONArray) {
+        for (i in 0 until msgs.length()) {
+            val m = msgs.getJSONObject(i)
+            if (m.optString("role") != "assistant") continue
+            val c = m.optJSONArray("content") ?: continue
+            val kept = JSONArray()
+            for (j in 0 until c.length()) {
+                val b = c.getJSONObject(j)
+                val t = b.optString("type")
+                if (t != "thinking" && t != "redacted_thinking") kept.put(b)
+            }
+            if (kept.length() == 0) kept.put(JSONObject().put("type", "text").put("text", "…"))
+            m.put("content", kept)
+        }
+    }
+
     /**
      * Kullanıcının mesajını gönderir, araç çağrılarını telefonda çalıştırır ve son cevabı döndürür.
      * Arka planda (IO) çağrılmalı. [changed] veri değiştiyse true olur.
@@ -272,15 +289,27 @@ Kurallar:
         flush()
 
         var changed = false
+        // Talimat, araç listesi ve model bir mesajın tüm adımlarında AYNI kalmalı;
+        // yoksa Claude önceki adımdaki "düşünme" bloklarını reddeder.
+        val model = AssistantSettings.model(ctx)
+        val system = systemPrompt(ctx)
+        val toolList = tools(ctx)
         repeat(8) {
-            val body = JSONObject().apply {
-                put("model", AssistantSettings.model(ctx))
+            fun body() = JSONObject().apply {
+                put("model", model)
                 put("max_tokens", 4096)
-                put("system", systemPrompt(ctx))
-                put("tools", tools(ctx))
+                put("system", system)
+                put("tools", toolList)
                 put("messages", msgs)
             }
-            val resp = post(key, body)
+            val resp = try {
+                post(key, body())
+            } catch (e: AssistantException) {
+                // Yedek: düşünme bloğu reddedilirse o blokları çıkarıp bir kez daha dene
+                if (e.message?.contains("thinking", ignoreCase = true) != true) throw e
+                stripThinking(msgs)
+                post(key, body())
+            }
             val content = resp.getJSONArray("content")
             msgs.put(JSONObject().put("role", "assistant").put("content", content))
 
