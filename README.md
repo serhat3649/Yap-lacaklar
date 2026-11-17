@@ -1,6 +1,6 @@
-# Yapılacaklar (Android)
+# Pusula (Android)
 
-Kutlu Elektromekanik için kişisel iş listesi uygulaması.
+Kişisel asistan: işler, hatırlatmalar, namaz ve kitap takibi, Claude ile sohbet.
 
 - Kategori (İş, Proje, Şantiye, Teklif, Kişisel), öncelik (Acil / Normal / Düşük), not
 - Son tarih + saat, telefona bildirimli hatırlatma (internet gerekmez)
@@ -11,7 +11,7 @@ Kutlu Elektromekanik için kişisel iş listesi uygulaması.
 ## Derleme
 
 `main` dalına her yükleme yapıldığında GitHub Actions APK'yı derler ve
-**Releases** bölümüne `Yapilacaklar.apk` olarak koyar.
+**Releases** bölümüne `Pusula.apk` olarak koyar.
 
 ## İmza anahtarı
 

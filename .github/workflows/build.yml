@@ -27,13 +27,13 @@ jobs:
         run: gradle assembleRelease --no-daemon --stacktrace
 
       - name: Dosyayı adlandır
-        run: cp app/build/outputs/apk/release/app-release.apk Yapilacaklar.apk
+        run: cp app/build/outputs/apk/release/app-release.apk Pusula.apk
 
       - name: Releases'a yükle
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.0.${{ github.run_number }}
-          name: Yapılacaklar 1.0.${{ github.run_number }}
-          body: Telefondan Yapilacaklar.apk dosyasını indirip kur.
-          files: Yapilacaklar.apk
+          name: Pusula 1.0.${{ github.run_number }}
+          body: Telefondan Pusula.apk dosyasını indirip kur.
+          files: Pusula.apk
           make_latest: true

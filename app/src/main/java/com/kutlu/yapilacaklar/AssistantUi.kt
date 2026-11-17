@@ -159,7 +159,7 @@ fun AssistantScreen(onDataChanged: () -> Unit, autoPrompt: String?, onAutoPrompt
         // Başlık
         Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 4.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Asistan", fontSize = 26.sp, fontWeight = FontWeight.Bold)
+                Text("Pusula", fontSize = 26.sp, fontWeight = FontWeight.Bold)
                 Text(
                     if (AssistantSettings.model(ctx) == AssistantSettings.MODEL_FAST) "Claude Haiku · hızlı" else "Claude Sonnet",
                     fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
@@ -260,7 +260,7 @@ private fun Welcome(hasKey: Boolean, openSettings: () -> Unit) {
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Merhaba 👋", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text("Merhaba, ben Pusula 🧭", fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Text("Bana yazarak ya da 🎤 ile konuşarak şunları yaptırabilirsin:", fontSize = 14.sp)
             Text(
                 "• \"Yarın 10'da Berat'la Gebze projesini konuş, hatırlat\"\n" +

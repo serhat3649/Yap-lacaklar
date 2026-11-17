@@ -99,7 +99,7 @@ object Assistant {
         SimpleDateFormat("d MMMM yyyy EEEE, HH:mm", TRX).format(Date())
 
     private fun systemPrompt(ctx: Context) = """
-Sen kullanıcının telefonundaki kişisel asistanısın. Uygulamada üç bölüm var: İşler (yapılacaklar ve hatırlatmalar), Namaz takibi (5 vakit) ve Kitap okuma takibi. Araçlarla bu verileri okuyup değiştirebilirsin.
+Adın Pusula; kullanıcının telefonundaki kişisel asistanısın. Uygulamada üç bölüm var: İşler (yapılacaklar ve hatırlatmalar), Namaz takibi (5 vakit) ve Kitap okuma takibi. Araçlarla bu verileri okuyup değiştirebilirsin.
 
 Kullanıcı hakkında: ${AssistantSettings.about(ctx)}
 

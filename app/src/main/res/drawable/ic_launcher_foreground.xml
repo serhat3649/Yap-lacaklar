@@ -4,18 +4,29 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- liste satırları -->
+    <!-- dış halka -->
     <path
         android:strokeColor="#FFFFFF"
-        android:strokeAlpha="0.55"
-        android:strokeWidth="5"
-        android:strokeLineCap="round"
-        android:pathData="M58,40 L78,40 M58,54 L78,54 M58,68 L72,68" />
-    <!-- onay işareti -->
+        android:strokeWidth="4"
+        android:fillColor="#00000000"
+        android:pathData="M54,25 A29,29 0 1,1 53.99,25 Z" />
+    <!-- yön çentikleri -->
     <path
         android:strokeColor="#FFFFFF"
-        android:strokeWidth="7"
+        android:strokeAlpha="0.6"
+        android:strokeWidth="3"
         android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:pathData="M30,54 L39,63 L52,44" />
+        android:pathData="M54,30 L54,34 M54,74 L54,78 M30,54 L34,54 M74,54 L78,54" />
+    <!-- kuzey ibresi (kırmızı) -->
+    <path
+        android:fillColor="#E8574F"
+        android:pathData="M54,33 L61,54 L47,54 Z" />
+    <!-- güney ibresi (beyaz) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,75 L47,54 L61,54 Z" />
+    <!-- merkez -->
+    <path
+        android:fillColor="#1F4E79"
+        android:pathData="M54,51 A3,3 0 1,1 53.99,51 Z" />
 </vector>
