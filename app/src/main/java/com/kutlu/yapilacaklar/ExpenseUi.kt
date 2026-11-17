@@ -6,6 +6,7 @@ import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -78,6 +79,7 @@ fun ExpenseScreen() {
     val dim = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
     var catsVersion by remember { mutableIntStateOf(0) }
     val emojiMap = remember(catsVersion) { ExpenseCats.emojiMap(ctx) }
+    var showAllMonths by remember { mutableStateOf(false) }
 
     fun saveExpense(e: Expense) {
         val l = list.toMutableList()
@@ -175,6 +177,66 @@ fun ExpenseScreen() {
                                 Text("${month.size}", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                                 Text("harcama kaydı", fontSize = 12.sp, color = dim)
                             }
+                        }
+                    }
+                }
+            }
+
+            // Aylık özet listesi
+            val nowCal = Calendar.getInstance()
+            val months = list.groupBy {
+                val c = Calendar.getInstance().apply { timeInMillis = it.time }
+                c.get(Calendar.YEAR) * 12 + c.get(Calendar.MONTH)
+            }.mapValues { (_, v) -> v.sumOf { it.amount } to v.size }
+                .toList().sortedByDescending { it.first }
+            if (months.isNotEmpty()) item {
+                ExCard {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Aylık özet", fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                        Text("Toplam: ${tl(list.sumOf { it.amount })}", fontSize = 12.sp, color = dim)
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    val maxM = months.maxOf { it.second.first }.takeIf { it > 0 } ?: 1.0
+                    val shown = if (showAllMonths) months else months.take(6)
+                    shown.forEachIndexed { i, (key, v) ->
+                        val (sum, count) = v
+                        val off = key - (nowCal.get(Calendar.YEAR) * 12 + nowCal.get(Calendar.MONTH))
+                        val prev = months.firstOrNull { it.first == key - 1 }?.second?.first
+                        val label = SimpleDateFormat("MMMM yyyy", TRE).format(Date(ExpenseStore.monthRange(off).first))
+                            .replaceFirstChar { it.titlecase(TRE) }
+                        Column(
+                            Modifier.fillMaxWidth()
+                                .clickable { monthOffset = off }
+                                .background(
+                                    if (off == monthOffset) MaterialTheme.colorScheme.primary.copy(alpha = 0.10f) else Color.Transparent,
+                                    RoundedCornerShape(8.dp)
+                                )
+                                .padding(horizontal = 6.dp, vertical = 7.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(label, fontSize = 14.sp, modifier = Modifier.weight(1f),
+                                    fontWeight = if (off == monthOffset) FontWeight.Bold else FontWeight.Normal)
+                                if (prev != null && prev > 0) {
+                                    val d = (sum - prev) / prev * 100
+                                    Text((if (d >= 0) "▲" else "▼") + "%.0f%%".format(kotlin.math.abs(d)) + "  ",
+                                        fontSize = 11.sp, color = if (d > 0) EX_RED else EX_GREEN)
+                                }
+                                Text(tl(sum), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                            }
+                            Spacer(Modifier.height(4.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(Modifier.weight(1f).height(5.dp)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(3.dp))) {
+                                    Box(Modifier.fillMaxWidth((sum / maxM).toFloat()).fillMaxHeight()
+                                        .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(3.dp)))
+                                }
+                                Text("  $count kayıt", fontSize = 11.sp, color = dim)
+                            }
+                        }
+                    }
+                    if (months.size > 6) {
+                        TextButton(onClick = { showAllMonths = !showAllMonths }) {
+                            Text(if (showAllMonths) "Daha az göster" else "Tüm ayları göster (${months.size})")
                         }
                     }
                 }
