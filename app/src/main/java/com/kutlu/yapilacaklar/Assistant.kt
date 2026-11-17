@@ -45,7 +45,7 @@ object AssistantSettings {
     fun apiKey(ctx: Context): String = secure(ctx).getString("api_key", "") ?: ""
     fun setApiKey(ctx: Context, k: String) = secure(ctx).edit().putString("api_key", k.trim()).apply()
 
-    fun model(ctx: Context): String = plain(ctx).getString("model", MODEL_SMART) ?: MODEL_SMART
+    fun model(ctx: Context): String = plain(ctx).getString("model", MODEL_FAST) ?: MODEL_FAST
     fun setModel(ctx: Context, m: String) = plain(ctx).edit().putString("model", m).apply()
 
     fun about(ctx: Context): String = plain(ctx).getString("about", DEFAULT_ABOUT) ?: DEFAULT_ABOUT
