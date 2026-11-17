@@ -1,6 +1,7 @@
 package com.kutlu.yapilacaklar
 
 import android.Manifest
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -18,7 +19,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.sp
@@ -26,6 +26,20 @@ import androidx.compose.ui.unit.sp
 class MainActivity : ComponentActivity() {
 
     private var tasks by mutableStateOf(listOf<Task>())
+    private var tab by mutableIntStateOf(0)
+    private var autoPrompt by mutableStateOf<String?>(null)
+
+    private fun readIntent(i: Intent?) {
+        if (i == null) return
+        if (i.hasExtra(Brief.EXTRA_TAB)) tab = i.getIntExtra(Brief.EXTRA_TAB, 0)
+        i.getStringExtra(Brief.EXTRA_PROMPT)?.let { autoPrompt = it }
+        i.removeExtra(Brief.EXTRA_PROMPT)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        readIntent(intent)
+    }
 
     private val askNotif = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
@@ -34,6 +48,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         Reminders.ensureChannel(this)
         tasks = TaskStore.load(this)
+        if (savedInstanceState == null) readIntent(intent)
+        Brief.schedule(this)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !Reminders.canNotify(this)) {
             askNotif.launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -41,12 +57,11 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             AppTheme {
-                var tab by rememberSaveable { mutableIntStateOf(0) }
                 Scaffold(
                     containerColor = MaterialTheme.colorScheme.background,
                     bottomBar = {
                         NavigationBar {
-                            listOf("✅" to "İşler", "🕌" to "Namaz", "📖" to "Kitap").forEachIndexed { i, (icon, label) ->
+                            listOf("🤖" to "Asistan", "✅" to "İşler", "🕌" to "Namaz", "📖" to "Kitap").forEachIndexed { i, (icon, label) ->
                                 NavigationBarItem(
                                     selected = tab == i,
                                     onClick = { tab = i },
@@ -59,7 +74,12 @@ class MainActivity : ComponentActivity() {
                 ) { pad ->
                     Box(Modifier.fillMaxSize().padding(pad)) {
                         when (tab) {
-                            0 -> TodoScreen(
+                            0 -> AssistantScreen(
+                                onDataChanged = { tasks = TaskStore.load(this@MainActivity) },
+                                autoPrompt = autoPrompt,
+                                onAutoPromptUsed = { autoPrompt = null },
+                            )
+                            1 -> TodoScreen(
                                 tasks = tasks,
                                 onUpsert = ::upsert,
                                 onToggle = ::toggle,
@@ -67,7 +87,7 @@ class MainActivity : ComponentActivity() {
                                 onRestore = ::restore,
                                 onClearDone = ::clearDone,
                             )
-                            1 -> PrayerScreen()
+                            2 -> PrayerScreen()
                             else -> BookScreen()
                         }
                     }

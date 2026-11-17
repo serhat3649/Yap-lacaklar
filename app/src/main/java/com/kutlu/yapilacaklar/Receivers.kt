@@ -31,5 +31,6 @@ class BootReceiver : BroadcastReceiver() {
     override fun onReceive(ctx: Context, intent: Intent) {
         Reminders.ensureChannel(ctx)
         Reminders.rescheduleAll(ctx)
+        Brief.schedule(ctx)
     }
 }
