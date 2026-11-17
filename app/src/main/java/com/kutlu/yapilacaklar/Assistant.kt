@@ -177,7 +177,7 @@ Kurallar:
             put(tool("add_expense", "Harcama kaydeder (TL).", JSONObject().apply {
                 put("amount", prop("number", "Tutar (TL)"))
                 put("category", prop("string", "Kategori", ExpenseCats.all(ctx)))
-                put("note", prop("string", "Kısa açıklama (ör. 'Shell mazot', 'öğle yemeği')"))
+                put("note", prop("string", "Açıklama: kullanıcının söylediği ayrıntılar (nereden, ne için, kime)"))
                 put("date", prop("string", "Ne zaman: 'YYYY-MM-DDTHH:mm' veya 'YYYY-MM-DD'; boşsa şimdi"))
             }, listOf("amount", "category")))
             put(tool("add_expense_category", "Harcamalar için yeni kategori ekler.", JSONObject().apply {
@@ -187,6 +187,13 @@ Kurallar:
             put(tool("expense_summary", "Bir ayın harcama özeti: toplam, günlük ortalama, kategori dağılımı, son kayıtlar (id'leriyle).", JSONObject().apply {
                 put("month", prop("string", "Ay 'YYYY-MM' (varsayılan bu ay)"))
             }))
+            put(tool("update_expense", "Var olan harcamayı değiştirir (açıklama, tutar, kategori, tarih). Sadece değişen alanları gönder.", JSONObject().apply {
+                put("id", prop("string", "Harcama id'si (expense_summary'den)"))
+                put("note", prop("string", "Yeni açıklama"))
+                put("amount", prop("number", "Yeni tutar (TL)"))
+                put("category", prop("string", "Kategori", ExpenseCats.all(ctx)))
+                put("date", prop("string", "Yeni zaman 'YYYY-MM-DDTHH:mm'"))
+            }, listOf("id")))
             put(tool("delete_expense", "Harcama kaydını siler.", JSONObject().apply {
                 put("id", prop("string", "Harcama id'si (expense_summary'den)"))
             }, listOf("id")))
@@ -565,7 +572,7 @@ object Tools {
             val e = Expense(
                 amount = amount,
                 cat = input.optString("category", "Diğer").takeIf { it in ExpenseCats.all(ctx) } ?: "Diğer",
-                note = input.optString("note", "").trim().take(200),
+                note = input.optString("note", "").trim().take(500),
                 time = whenMs,
             )
             val list = ExpenseStore.load(ctx) + e
@@ -609,6 +616,21 @@ object Tools {
             val n = input.getString("name")
             if (ExpenseCats.add(ctx, n, input.optString("emoji", "🏷"))) "Kategori eklendi: $n. Mevcut kategoriler: ${ExpenseCats.all(ctx).joinToString()}" to true
             else "Bu kategori zaten var: $n" to false
+        }
+
+        "update_expense" -> {
+            val id = input.getString("id")
+            val list = ExpenseStore.load(ctx).toMutableList()
+            val i = list.indexOfFirst { it.id == id }
+            if (i < 0) throw IllegalArgumentException("Harcama bulunamadı: $id")
+            var e = list[i]
+            if (input.has("note")) e = e.copy(note = input.getString("note").trim().take(500))
+            if (input.has("amount")) input.getDouble("amount").takeIf { it > 0 }?.let { e = e.copy(amount = it) }
+            if (input.has("category")) input.getString("category").takeIf { it in ExpenseCats.all(ctx) }?.let { e = e.copy(cat = it) }
+            if (input.has("date")) parseDue(input.getString("date"))?.let { e = e.copy(time = it.first) }
+            list[i] = e
+            ExpenseStore.save(ctx, list)
+            "Güncellendi: ${tl(e.amount)} ${e.cat} – ${e.note}" to true
         }
 
         "delete_expense" -> {

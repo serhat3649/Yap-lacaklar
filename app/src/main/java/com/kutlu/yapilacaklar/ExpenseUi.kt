@@ -347,8 +347,8 @@ fun ExpenseScreen() {
                                 Text(emojiMap[e.cat] ?: "🏷", fontSize = 20.sp)
                                 Spacer(Modifier.width(10.dp))
                                 Column(Modifier.weight(1f)) {
-                                    Text(e.note.ifBlank { e.cat }, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                    Text(e.cat + " · " + SimpleDateFormat("HH:mm", TRE).format(Date(e.time)), fontSize = 12.sp, color = dim)
+                                    Text(e.cat + " · " + SimpleDateFormat("HH:mm", TRE).format(Date(e.time)), fontSize = 15.sp)
+                                    if (e.note.isNotBlank()) Text(e.note, fontSize = 13.sp, color = dim, maxLines = 3, overflow = TextOverflow.Ellipsis)
                                 }
                                 Text(tl(e.amount), fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                             }
@@ -406,10 +406,8 @@ fun ExpenseScreen() {
                             Row(Modifier.padding(horizontal = 14.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Column(Modifier.weight(1f)) {
                                     Text(SimpleDateFormat("d MMMM yyyy, EEEE", TRE).format(Date(e.time)), fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                                    Text(
-                                        SimpleDateFormat("HH:mm", TRE).format(Date(e.time)) + (if (e.note.isNotBlank()) " · " + e.note else ""),
-                                        fontSize = 12.sp, color = dim, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                                    )
+                                    Text(SimpleDateFormat("HH:mm", TRE).format(Date(e.time)), fontSize = 12.sp, color = dim)
+                                    if (e.note.isNotBlank()) Text(e.note, fontSize = 13.sp, color = dim, maxLines = 3, overflow = TextOverflow.Ellipsis)
                                 }
                                 Text(tl(e.amount), fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                             }
@@ -487,8 +485,10 @@ private fun ExpenseEditor(initial: Expense?, onDismiss: () -> Unit, onSave: (Exp
                     }
                 }
                 OutlinedTextField(
-                    value = note, onValueChange = { note = it.take(200) }, singleLine = true,
-                    modifier = Modifier.fillMaxWidth(), label = { Text("Açıklama (isteğe bağlı)") },
+                    value = note, onValueChange = { note = it.take(500) },
+                    minLines = 2, maxLines = 5,
+                    modifier = Modifier.fillMaxWidth(), label = { Text("Açıklama") },
+                    placeholder = { Text("Ne için, nereden, kime… (ör. Shell, Gebze şantiyesi dönüşü)") },
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
