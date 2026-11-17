@@ -4,11 +4,19 @@ import android.Manifest
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.Button
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.fragment.app.FragmentActivity
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -23,11 +31,38 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.sp
 
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
 
     private var tasks by mutableStateOf(listOf<Task>())
     private var tab by mutableIntStateOf(0)
     private var autoPrompt by mutableStateOf<String?>(null)
+    private var locked by mutableStateOf(false)
+    private var promptShowing = false
+    private var lastStop = 0L
+
+    private fun unlock() {
+        if (promptShowing) return
+        promptShowing = true
+        AppLock.prompt(this,
+            onSuccess = { promptShowing = false; locked = false },
+            onFail = { promptShowing = false },
+        )
+    }
+
+    override fun onStart() {
+        super.onStart()
+        if (AppLock.active(this)) {
+            if (lastStop > 0L && System.currentTimeMillis() - lastStop > AppLock.RELOCK_MS) locked = true
+            if (locked) unlock()
+        } else {
+            locked = false
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        if (!isChangingConfigurations) lastStop = System.currentTimeMillis()
+    }
 
     private fun readIntent(i: Intent?) {
         if (i == null) return
@@ -48,6 +83,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         Reminders.ensureChannel(this)
         tasks = TaskStore.load(this)
+        locked = savedInstanceState == null && AppLock.active(this)
         if (savedInstanceState == null) readIntent(intent)
         Brief.schedule(this)
 
@@ -57,16 +93,30 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             AppTheme {
+                if (locked) {
+                    Column(
+                        Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        Text("🧭", fontSize = 64.sp)
+                        Spacer(Modifier.height(12.dp))
+                        Text("Pusula kilitli", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+                        Spacer(Modifier.height(20.dp))
+                        Button(onClick = { unlock() }) { Text("Parmak iziyle aç") }
+                    }
+                    return@AppTheme
+                }
                 Scaffold(
                     containerColor = MaterialTheme.colorScheme.background,
                     bottomBar = {
                         NavigationBar {
-                            listOf("🤖" to "Asistan", "✅" to "İşler", "🕌" to "Namaz", "📖" to "Kitap").forEachIndexed { i, (icon, label) ->
+                            listOf("🤖" to "Asistan", "✅" to "İşler", "🕌" to "Namaz", "📖" to "Kitap", "💰" to "Harcama").forEachIndexed { i, (icon, label) ->
                                 NavigationBarItem(
                                     selected = tab == i,
                                     onClick = { tab = i },
                                     icon = { Text(icon, fontSize = 20.sp) },
-                                    label = { Text(label) },
+                                    label = { Text(label, fontSize = 11.sp, maxLines = 1) },
                                 )
                             }
                         }
@@ -88,7 +138,8 @@ class MainActivity : ComponentActivity() {
                                 onClearDone = ::clearDone,
                             )
                             2 -> PrayerScreen()
-                            else -> BookScreen()
+                            3 -> BookScreen()
+                            else -> ExpenseScreen()
                         }
                     }
                 }

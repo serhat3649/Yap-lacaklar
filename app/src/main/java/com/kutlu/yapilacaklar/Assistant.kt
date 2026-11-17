@@ -99,7 +99,7 @@ object Assistant {
         SimpleDateFormat("d MMMM yyyy EEEE, HH:mm", TRX).format(Date())
 
     private fun systemPrompt(ctx: Context) = """
-Adın Pusula; kullanıcının telefonundaki kişisel asistanısın. Uygulamada üç bölüm var: İşler (yapılacaklar ve hatırlatmalar), Namaz takibi (5 vakit) ve Kitap okuma takibi. Araçlarla bu verileri okuyup değiştirebilirsin.
+Adın Pusula; kullanıcının telefonundaki kişisel asistanısın. Uygulamada dört bölüm var: İşler (yapılacaklar ve hatırlatmalar), Namaz takibi (5 vakit), Kitap okuma takibi ve Harcamalar. Araçlarla bu verileri okuyup değiştirebilirsin.
 
 Kullanıcı hakkında: ${AssistantSettings.about(ctx)}
 
@@ -110,6 +110,7 @@ Kurallar:
 - Kullanıcı bir iş, hatırlatma, randevu veya "şunu yapmam lazım" dediğinde add_task ile ekle. "Yarın", "cuma", "akşam" gibi ifadeleri şu anki tarihe göre gerçek tarihe çevir. Saat söylenmezse sadece tarih ver (bildirim 09:00'da gelir). Tarih varsa hatırlatmayı aç.
 - Öncelik söylenmezse "normal", kategori söylenmezse içeriğe göre seç (İş, Proje, Şantiye, Teklif, Kişisel).
 - "Öğleyi kıldım", "bugün 30 sayfa okudum" gibi cümlelerde ilgili kaydı yap.
+- "Mazota 1500 lira verdim", "öğle yemeği 350" gibi harcamaları add_expense ile kaydet; kategoriyi içerikten seç (${EXPENSE_CATS.joinToString()}). Tutar TL'dir. Harcama soruları için expense_summary kullan; tutarları 1.250,50 ₺ biçiminde yaz.
 - İşi tamamladığını söylerse önce list_tasks ile bul, sonra update_task ile done=true yap. Emin değilsen sor.
 - Brifing veya gün planı istenince önce get_overview çağır; planı saat aralıklarıyla, acil ve geciken işler önde olacak şekilde öner.
 - Yaptığın değişikliği tek cümleyle teyit et (ör. "✅ Yarın 09:00 için eklendi: Murat'ı ara").
@@ -173,6 +174,18 @@ Kurallar:
             put(tool("get_prayers", "Son günlerin namaz durumunu verir.", JSONObject().apply {
                 put("days", prop("integer", "Kaç gün geriye (varsayılan 7, en çok 60)"))
             }))
+            put(tool("add_expense", "Harcama kaydeder (TL).", JSONObject().apply {
+                put("amount", prop("number", "Tutar (TL)"))
+                put("category", prop("string", "Kategori", EXPENSE_CATS))
+                put("note", prop("string", "Kısa açıklama (ör. 'Shell mazot', 'öğle yemeği')"))
+                put("date", prop("string", "Ne zaman: 'YYYY-MM-DDTHH:mm' veya 'YYYY-MM-DD'; boşsa şimdi"))
+            }, listOf("amount", "category")))
+            put(tool("expense_summary", "Bir ayın harcama özeti: toplam, günlük ortalama, kategori dağılımı, son kayıtlar (id'leriyle).", JSONObject().apply {
+                put("month", prop("string", "Ay 'YYYY-MM' (varsayılan bu ay)"))
+            }))
+            put(tool("delete_expense", "Harcama kaydını siler.", JSONObject().apply {
+                put("id", prop("string", "Harcama id'si (expense_summary'den)"))
+            }, listOf("id")))
             put(tool("list_books", "Okunan ve biten kitapları listeler."))
             put(tool("add_book", "Okuma listesine kitap ekler.", JSONObject().apply {
                 put("title", prop("string", "Kitap adı"))
@@ -503,6 +516,70 @@ object Tools {
             "${b.title}: sayfa $np/${b.total}" to true
         }
 
+        "add_expense" -> {
+            val amount = input.getDouble("amount")
+            if (amount <= 0) throw IllegalArgumentException("Tutar sıfırdan büyük olmalı")
+            val whenMs = parseDue(input.optString("date", ""))?.let { (ms, timed) ->
+                if (timed) ms else {
+                    // sadece tarih verildiyse: bugünse şimdiki saat, değilse öğlen
+                    val now = Calendar.getInstance()
+                    val c = Calendar.getInstance().apply { timeInMillis = ms }
+                    if (c.get(Calendar.DAY_OF_YEAR) == now.get(Calendar.DAY_OF_YEAR) && c.get(Calendar.YEAR) == now.get(Calendar.YEAR))
+                        System.currentTimeMillis()
+                    else c.apply { set(Calendar.HOUR_OF_DAY, 12) }.timeInMillis
+                }
+            } ?: System.currentTimeMillis()
+            val e = Expense(
+                amount = amount,
+                cat = input.optString("category", "Diğer").takeIf { it in EXPENSE_CATS } ?: "Diğer",
+                note = input.optString("note", "").trim().take(200),
+                time = whenMs,
+            )
+            val list = ExpenseStore.load(ctx) + e
+            ExpenseStore.save(ctx, list)
+            "Kaydedildi: ${tl(e.amount)} ${e.cat} (id ${e.id}). Bugün toplam ${tl(ExpenseStore.sum(list, ExpenseStore.dayRange(0)))}, bu ay ${tl(ExpenseStore.sum(list, ExpenseStore.monthRange(0)))}" to true
+        }
+
+        "expense_summary" -> {
+            val m = input.optString("month", "")
+            var offset = 0
+            if (m.matches(Regex("\\d{4}-\\d{2}"))) {
+                val now = Calendar.getInstance()
+                offset = (m.take(4).toInt() - now.get(Calendar.YEAR)) * 12 + (m.substring(5, 7).toInt() - 1 - now.get(Calendar.MONTH))
+            }
+            val all = ExpenseStore.load(ctx)
+            val r = ExpenseStore.monthRange(offset)
+            val inMonth = all.filter { it.time >= r.first && it.time < r.second }.sortedByDescending { it.time }
+            val total = inMonth.sumOf { it.amount }
+            val days = if (offset == 0) Calendar.getInstance().get(Calendar.DAY_OF_MONTH)
+                else Calendar.getInstance().apply { timeInMillis = r.first }.getActualMaximum(Calendar.DAY_OF_MONTH)
+            JSONObject().apply {
+                put("ay", SimpleDateFormat("yyyy-MM", Locale.US).format(Date(r.first)))
+                put("toplam", tl(total))
+                put("gunluk_ortalama", tl(if (days > 0) total / days else 0.0))
+                put("bugun", tl(ExpenseStore.sum(all, ExpenseStore.dayRange(0))))
+                put("gecen_ay_toplam", tl(ExpenseStore.sum(all, ExpenseStore.monthRange(offset - 1))))
+                put("kategoriler", JSONObject().apply {
+                    inMonth.groupBy { it.cat }.mapValues { (_, v) -> v.sumOf { it.amount } }
+                        .toList().sortedByDescending { it.second }.forEach { (c, v) -> put(c, tl(v)) }
+                })
+                put("kayitlar", JSONArray().apply {
+                    inMonth.take(40).forEach {
+                        put(JSONObject().put("id", it.id).put("tutar", tl(it.amount)).put("kategori", it.cat)
+                            .put("not", it.note).put("zaman", SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US).format(Date(it.time))))
+                    }
+                })
+            }.toString() to false
+        }
+
+        "delete_expense" -> {
+            val id = input.getString("id")
+            val list = ExpenseStore.load(ctx)
+            val e = list.firstOrNull { it.id == id } ?: throw IllegalArgumentException("Harcama bulunamadı: $id")
+            ExpenseStore.save(ctx, list.filterNot { it.id == id })
+            "Silindi: ${tl(e.amount)} ${e.cat}" to true
+        }
+
         else -> "Bilinmeyen araç: $name" to false
     }
 
@@ -532,6 +609,10 @@ object Tools {
             put("okuma_bugun_sayfa", log[TrackStore.dayKey()] ?: 0)
             put("okuma_hedef_sayfa", TrackStore.loadGoal(ctx))
             put("okuma_seri_gun", TrackStore.streak(log) { it > 0 })
+            val ex = ExpenseStore.load(ctx)
+            put("harcama_bugun", tl(ExpenseStore.sum(ex, ExpenseStore.dayRange(0))))
+            put("harcama_dun", tl(ExpenseStore.sum(ex, ExpenseStore.dayRange(-1))))
+            put("harcama_bu_ay", tl(ExpenseStore.sum(ex, ExpenseStore.monthRange(0))))
             put("okunan_kitaplar", JSONArray().apply {
                 books.forEach { put("${it.title} (${it.current}/${it.total}, id ${it.id})") }
             })

@@ -322,6 +322,8 @@ private fun AssistantSettingsDialog(onClose: () -> Unit) {
     var briefOn by remember { mutableStateOf(AssistantSettings.briefOn(ctx)) }
     var bh by remember { mutableIntStateOf(AssistantSettings.briefHour(ctx)) }
     var bm by remember { mutableIntStateOf(AssistantSettings.briefMinute(ctx)) }
+    var lockOn by remember { mutableStateOf(AppLock.enabled(ctx)) }
+    val lockAvailable = remember { AppLock.available(ctx) }
     val dim = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
 
     fun save() {
@@ -329,12 +331,13 @@ private fun AssistantSettingsDialog(onClose: () -> Unit) {
         AssistantSettings.setModel(ctx, model)
         AssistantSettings.setAbout(ctx, about.trim().ifEmpty { AssistantSettings.DEFAULT_ABOUT })
         AssistantSettings.setBrief(ctx, briefOn, bh, bm)
+        AppLock.setEnabled(ctx, lockOn)
         onClose()
     }
 
     AlertDialog(
         onDismissRequest = onClose,
-        title = { Text("Asistan ayarları") },
+        title = { Text("Ayarlar") },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("Claude API anahtarı", fontWeight = FontWeight.SemiBold)
@@ -387,6 +390,18 @@ private fun AssistantSettingsDialog(onClose: () -> Unit) {
                     OutlinedButton(onClick = {
                         TimePickerDialog(ctx, { _, h, m -> bh = h; bm = m }, bh, bm, true).show()
                     }) { Text("Saat: %02d:%02d".format(bh, bm)) }
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Parmak izi kilidi", fontWeight = FontWeight.SemiBold)
+                        Text(
+                            if (lockAvailable) "Açılışta ve 1 dakikadan uzun arka planda kalınca sorar"
+                            else "Telefonda parmak izi veya ekran kilidi tanımlı değil",
+                            fontSize = 12.sp, color = dim,
+                        )
+                    }
+                    Switch(checked = lockOn && lockAvailable, enabled = lockAvailable, onCheckedChange = { lockOn = it })
                 }
             }
         },

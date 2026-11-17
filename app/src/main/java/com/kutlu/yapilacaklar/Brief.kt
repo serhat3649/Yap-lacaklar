@@ -73,6 +73,8 @@ object Brief {
             if (late.isNotEmpty()) append("⏰ Geciken: ").append(late.take(3).joinToString { it.title }).append('\n')
             if (urgent > 0) append("🔴 Toplam acil iş: $urgent\n")
             append("🕌 Dün namaz: $y/5 · 📖 Okuma serisi: $readStreak gün (hedef ${TrackStore.loadGoal(ctx)} sayfa)")
+            val ex = ExpenseStore.load(ctx)
+            append("\n💰 Dün: ${tl(ExpenseStore.sum(ex, ExpenseStore.dayRange(-1)))} · Bu ay: ${tl(ExpenseStore.sum(ex, ExpenseStore.monthRange(0)))}")
         }
         return title to body
     }
