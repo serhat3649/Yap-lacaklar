@@ -444,7 +444,7 @@ private fun ExpenseEditor(initial: Expense?, onDismiss: () -> Unit, onSave: (Exp
     var amount by remember {
         mutableStateOf(initial?.amount?.let { if (it % 1.0 == 0.0) it.toLong().toString() else "%.2f".format(it).replace('.', ',') } ?: "")
     }
-    var cat by remember { mutableStateOf(initial?.cat ?: "Yemek") }
+    var cat by remember { mutableStateOf(initial?.cat ?: DEFAULT_EXPENSE_CAT) }
     var note by remember { mutableStateOf(initial?.note ?: "") }
     var cats by remember { mutableStateOf(ExpenseCats.all(ctx)) }
     var emojis by remember { mutableStateOf(ExpenseCats.emojiMap(ctx)) }
@@ -575,7 +575,7 @@ private fun ExpenseEditor(initial: Expense?, onDismiss: () -> Unit, onSave: (Exp
                             Text("$e $n", modifier = Modifier.weight(1f), fontSize = 15.sp)
                             TextButton(onClick = {
                                 ExpenseCats.remove(ctx, n); refreshCats()
-                                if (cat == n) cat = "Diğer"
+                                if (cat == n) cat = DEFAULT_EXPENSE_CAT
                                 if (ExpenseCats.custom(ctx).isEmpty()) showManage = false
                             }) { Text("Sil", color = EX_RED) }
                         }

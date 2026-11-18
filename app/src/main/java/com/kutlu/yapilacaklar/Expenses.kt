@@ -9,9 +9,13 @@ import java.util.Calendar
 import java.util.Locale
 import java.util.UUID
 
-val EXPENSE_CATS = listOf("Yakıt", "Yemek", "Market", "Ulaşım", "Fatura", "Şantiye", "Ev", "Sağlık", "Kişisel", "Diğer")
+val EXPENSE_CATS = listOf("Ben", "Murat", "Berat", "Babam", "Kafe", "Ofis", "Ortak", "Araç")
+const val DEFAULT_EXPENSE_CAT = "Ben"
 
 val EXPENSE_EMOJI = mapOf(
+    "Ben" to "👤", "Murat" to "👷", "Berat" to "✏️", "Babam" to "👨", "Kafe" to "☕",
+    "Ofis" to "🏢", "Ortak" to "🤝", "Araç" to "🚗",
+    // eski kategoriler (önceden girilmiş kayıtlar için)
     "Yakıt" to "⛽", "Yemek" to "🍽", "Market" to "🛒", "Ulaşım" to "🚗", "Fatura" to "🧾",
     "Şantiye" to "🏗", "Ev" to "🏠", "Sağlık" to "💊", "Kişisel" to "👤", "Diğer" to "📦",
 )
@@ -19,7 +23,7 @@ val EXPENSE_EMOJI = mapOf(
 data class Expense(
     val id: String = UUID.randomUUID().toString(),
     val amount: Double,
-    val cat: String = "Diğer",
+    val cat: String = DEFAULT_EXPENSE_CAT,
     val note: String = "",
     val time: Long = System.currentTimeMillis(),
 ) {
@@ -31,7 +35,7 @@ data class Expense(
         fun fromJson(o: JSONObject) = Expense(
             id = o.getString("id"),
             amount = o.optDouble("amount", 0.0),
-            cat = o.optString("cat", "Diğer"),
+            cat = o.optString("cat", DEFAULT_EXPENSE_CAT),
             note = o.optString("note"),
             time = o.optLong("time", 0L),
         )
@@ -122,9 +126,9 @@ object ExpenseCats {
         prefs(ctx).edit().putString("list", a.toString()).apply()
     }
 
-    /** Tüm kategoriler; "Diğer" her zaman en sonda. */
+    /** Hazır kategoriler + kullanıcının eklediği (hazırlarla aynı isimde olanlar tekrar gösterilmez). */
     fun all(ctx: Context): List<String> =
-        EXPENSE_CATS.filter { it != "Diğer" } + custom(ctx).map { it.first } + "Diğer"
+        EXPENSE_CATS + custom(ctx).map { it.first }.filter { c -> EXPENSE_CATS.none { it.equals(c, ignoreCase = true) } }
 
     fun emojiMap(ctx: Context): Map<String, String> = EXPENSE_EMOJI + custom(ctx).toMap()
 

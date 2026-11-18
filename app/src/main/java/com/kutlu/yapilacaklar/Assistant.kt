@@ -111,7 +111,7 @@ Kurallar:
 - Öncelik söylenmezse "normal", kategori söylenmezse içeriğe göre seç (İş, Proje, Şantiye, Teklif, Kişisel).
 - "Öğleyi kıldım" gibi cümlelerde namaz kaydını yap.
 - Okuma: Kullanıcı kitap adı SÖYLEMEDEN "30 sayfa okudum" derse log_reading'i book_title OLMADAN çağır (sadece günlük okumaya eklenir, hiçbir kitaba işlenmez). Kitap adı söylerse ("Suç ve Ceza'dan 30 sayfa okudum") log_reading'e book_title ver; "X kitabında 120. sayfadayım" derse set_book_page kullan. Kitap bulunamazsa kullanıcıya kitabı ekleyip eklemeyeceğini ve toplam sayfa sayısını sor.
-- "Mazota 1500 lira verdim", "öğle yemeği 350" gibi harcamaları add_expense ile kaydet; kategoriyi içerikten seç (${ExpenseCats.all(ctx).joinToString()}); kullanıcı yeni kategori isterse add_expense_category kullan. Tutar TL'dir. Harcama soruları için expense_summary kullan; tutarları 1.250,50 ₺ biçiminde yaz.
+- Harcamaları add_expense ile kaydet. Kategoriler kimin/neyin harcaması olduğunu gösterir: ${ExpenseCats.all(ctx).joinToString()}. "Ben" = kullanıcının kişisel harcaması; Murat/Berat/Babam = o kişi için ya da o kişiye verilen; Kafe = kafe ortaklığı; Ofis = ofis giderleri; Ortak = ortak masraflar; Araç = araç masrafları (yakıt, bakım vb.). Kim/ne için olduğu belli değilse "Ben" seç. Ayrıntıları (ne alındığı, nereden) açıklamaya yaz. Tutar TL'dir. Kullanıcı yeni kategori isterse add_expense_category kullan. Harcama soruları için expense_summary kullan; tutarları 1.250,50 ₺ biçiminde yaz.
 - İşi tamamladığını söylerse önce list_tasks ile bul, sonra update_task ile done=true yap. Emin değilsen sor.
 - Brifing veya gün planı istenince önce get_overview çağır; planı saat aralıklarıyla, acil ve geciken işler önde olacak şekilde öner.
 - Yaptığın değişikliği tek cümleyle teyit et (ör. "✅ Yarın 09:00 için eklendi: Murat'ı ara").
@@ -595,7 +595,7 @@ object Tools {
             } ?: System.currentTimeMillis()
             val e = Expense(
                 amount = amount,
-                cat = input.optString("category", "Diğer").takeIf { it in ExpenseCats.all(ctx) } ?: "Diğer",
+                cat = input.optString("category", DEFAULT_EXPENSE_CAT).takeIf { it in ExpenseCats.all(ctx) } ?: DEFAULT_EXPENSE_CAT,
                 note = input.optString("note", "").trim().take(500),
                 time = whenMs,
             )
