@@ -106,6 +106,7 @@ Kullanıcı hakkında: ${AssistantSettings.about(ctx)}
 Şu an: ${nowText()} (Türkiye saati).
 
 Kurallar:
+- Geçmişteki mesajlar zaten işlendi; onları ASLA tekrar uygulama. Yalnızca en son kullanıcı mesajındaki isteği yerine getir.
 - Her zaman Türkçe, samimi, kısa ve net yaz. Gerekirse madde madde.
 - Kullanıcı bir iş, hatırlatma, randevu veya "şunu yapmam lazım" dediğinde add_task ile ekle. "Yarın", "cuma", "akşam" gibi ifadeleri şu anki tarihe göre gerçek tarihe çevir. Saat söylenmezse sadece tarih ver (bildirim 09:00'da gelir). Tarih varsa hatırlatmayı aç.
 - Öncelik söylenmezse "normal", kategori söylenmezse içeriğe göre seç (İş, Proje, Şantiye, Teklif, Kişisel).
@@ -180,6 +181,7 @@ Kurallar:
                 put("category", prop("string", "Kategori", ExpenseCats.all(ctx)))
                 put("note", prop("string", "Açıklama: kullanıcının söylediği ayrıntılar (nereden, ne için, kime)"))
                 put("date", prop("string", "Ne zaman: 'YYYY-MM-DDTHH:mm' veya 'YYYY-MM-DD'; boşsa şimdi"))
+                put("force", prop("boolean", "Sadece kullanıcı aynı harcamayı bilerek ikinci kez eklemek istediğini açıkça söylerse true"))
             }, listOf("amount", "category")))
             put(tool("add_expense_category", "Harcamalar için yeni kategori ekler.", JSONObject().apply {
                 put("name", prop("string", "Kategori adı (ör. 'Kafe', 'Çocuk')"))
@@ -288,12 +290,26 @@ Kurallar:
             }
             buf = StringBuilder()
         }
-        val recent = history.filter { !it.error }.takeLast(20).dropWhile { it.role != "user" }
-        for (m in recent + ChatMsg("user", userText)) {
-            if (m.role != lastRole) { flush(); lastRole = m.role }
-            if (buf.isNotEmpty()) buf.append("\n\n")
-            buf.append(m.text)
+        // Sadece cevabı başarıyla alınmış (kullanıcı → asistan) çiftleri geçmişe koy.
+        // Hata alan mesajlar atılır; yoksa eski istek yeni mesajla birleşip TEKRAR uygulanır.
+        val pairs = ArrayList<ChatMsg>()
+        val pendingUser = ArrayList<ChatMsg>()
+        for (m in history) {
+            if (m.role == "user") pendingUser.add(m)
+            else if (m.error) pendingUser.clear()
+            else if (pendingUser.isNotEmpty()) {
+                pairs.add(ChatMsg("user", pendingUser.joinToString("\n\n") { it.text }))
+                pairs.add(m)
+                pendingUser.clear()
+            }
         }
+        for (m in pairs.takeLast(16)) {
+            lastRole = m.role
+            buf.append(if (m.role == "user") "[ÖNCEKİ MESAJ – zaten işlendi] " + m.text else m.text)
+            flush()
+        }
+        lastRole = "user"
+        buf.append(userText)
         flush()
 
         var changed = false
@@ -438,6 +454,9 @@ object Tools {
 
         "add_task" -> {
             val due = parseDue(input.optString("due", ""))
+            val newTitle = input.getString("title").trim()
+            TaskStore.load(ctx).firstOrNull { !it.done && it.title.equals(newTitle, ignoreCase = true) && System.currentTimeMillis() - it.created < 30 * 60_000L }
+                ?.let { return "Bu iş az önce zaten eklendi: ${taskJson(it)}; TEKRAR EKLENMEDİ." to false }
             val t = Task(
                 title = input.getString("title").trim().take(300),
                 note = input.optString("note", "").trim(),
@@ -593,13 +612,21 @@ object Tools {
                     else c.apply { set(Calendar.HOUR_OF_DAY, 12) }.timeInMillis
                 }
             } ?: System.currentTimeMillis()
+            val existing = ExpenseStore.load(ctx)
+            if (!input.optBoolean("force", false)) {
+                val dup = existing.firstOrNull {
+                    it.amount == amount && kotlin.math.abs(it.time - whenMs) < 15 * 60_000L &&
+                        it.cat == (input.optString("category", DEFAULT_EXPENSE_CAT).takeIf { c -> c in ExpenseCats.all(ctx) } ?: DEFAULT_EXPENSE_CAT)
+                }
+                if (dup != null) return "Aynı tutar ve kategoride 15 dakika içinde zaten kayıt var (${tl(dup.amount)} ${dup.cat}, ${dup.note}); TEKRAR EKLENMEDİ. Kullanıcı gerçekten ikinci bir harcama olduğunu söylerse force=true ile ekle." to false
+            }
             val e = Expense(
                 amount = amount,
                 cat = input.optString("category", DEFAULT_EXPENSE_CAT).takeIf { it in ExpenseCats.all(ctx) } ?: DEFAULT_EXPENSE_CAT,
                 note = input.optString("note", "").trim().take(500),
                 time = whenMs,
             )
-            val list = ExpenseStore.load(ctx) + e
+            val list = existing + e
             ExpenseStore.save(ctx, list)
             "Kaydedildi: ${tl(e.amount)} ${e.cat} (id ${e.id}). Bugün toplam ${tl(ExpenseStore.sum(list, ExpenseStore.dayRange(0)))}, bu ay ${tl(ExpenseStore.sum(list, ExpenseStore.monthRange(0)))}" to true
         }

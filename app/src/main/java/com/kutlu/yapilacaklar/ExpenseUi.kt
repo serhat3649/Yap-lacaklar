@@ -25,6 +25,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -32,6 +33,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -82,6 +84,7 @@ fun ExpenseScreen() {
     val emojiMap = remember(catsVersion) { ExpenseCats.emojiMap(ctx) }
     var showAllMonths by remember { mutableStateOf(false) }
     var catFilter by remember { mutableStateOf<String?>(null) }
+    var showDups by remember { mutableStateOf(false) }
 
     fun saveExpense(e: Expense) {
         val l = list.toMutableList()
@@ -140,6 +143,28 @@ fun ExpenseScreen() {
                 Column(Modifier.padding(bottom = 4.dp)) {
                     Text("Harcamalar", fontSize = 26.sp, fontWeight = FontWeight.Bold)
                     Text("Bugün: ${tl(today)}", fontSize = 13.sp, color = dim)
+                }
+            }
+
+            // Olası çift kayıtlar
+            val dups = findDuplicates(list)
+            if (dups.isNotEmpty()) item(key = "dups") {
+                Card(
+                    onClick = { showDups = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0x22D9902F)),
+                    border = BorderStroke(1.dp, Color(0xFFD9902F)),
+                ) {
+                    Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text("⚠️", fontSize = 20.sp)
+                        Spacer(Modifier.width(10.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text("${dups.size} olası çift kayıt", fontWeight = FontWeight.SemiBold)
+                            Text("Aynı tutar ve kategori, 15 dk içinde", fontSize = 12.sp, color = dim)
+                        }
+                        Text("İncele ›", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                    }
                 }
             }
 
@@ -418,6 +443,46 @@ fun ExpenseScreen() {
         }
     }
 
+    if (showDups) {
+        val dups = findDuplicates(list)
+        var selected by remember { mutableStateOf(dups.map { it.id }.toSet()) }
+        AlertDialog(
+            onDismissRequest = { showDups = false },
+            title = { Text("Çift kayıtlar") },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("İşaretli kayıtlar silinir. Her birinin aynısından biri listede kalır.", fontSize = 13.sp, color = dim)
+                    dups.forEach { e ->
+                        Row(
+                            Modifier.fillMaxWidth().clickable {
+                                selected = if (e.id in selected) selected - e.id else selected + e.id
+                            }.padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Checkbox(checked = e.id in selected, onCheckedChange = {
+                                selected = if (it) selected + e.id else selected - e.id
+                            })
+                            Column(Modifier.weight(1f)) {
+                                Text("${emojiMap[e.cat] ?: "🏷"} ${e.cat} · ${tl(e.amount)}", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                Text(SimpleDateFormat("d MMM yyyy HH:mm", TRE).format(Date(e.time)) +
+                                    (if (e.note.isNotBlank()) " · " + e.note else ""), fontSize = 12.sp, color = dim,
+                                    maxLines = 2, overflow = TextOverflow.Ellipsis)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(enabled = selected.isNotEmpty(), onClick = {
+                    list = list.filterNot { it.id in selected }
+                    ExpenseStore.save(ctx, list)
+                    showDups = false
+                }) { Text("${selected.size} kaydı sil", color = EX_RED) }
+            },
+            dismissButton = { TextButton(onClick = { showDups = false }) { Text("Vazgeç") } },
+        )
+    }
+
     if (showEditor) {
         ExpenseEditor(
             initial = editing,
@@ -426,6 +491,18 @@ fun ExpenseScreen() {
             onDelete = { deleteExpense(it); showEditor = false; catsVersion++ },
         )
     }
+}
+
+/** Kendinden önceki bir kayıtla aynı tutar + kategoride ve 15 dakika içinde olan kayıtlar (sonradan gelenler). */
+private fun findDuplicates(list: List<Expense>): List<Expense> {
+    val sorted = list.sortedBy { it.time }
+    val out = ArrayList<Expense>()
+    val kept = ArrayList<Expense>()
+    for (e in sorted) {
+        val twin = kept.lastOrNull { it.amount == e.amount && it.cat == e.cat && e.time - it.time < 15 * 60_000L }
+        if (twin != null) out.add(e) else kept.add(e)
+    }
+    return out.sortedByDescending { it.time }
 }
 
 @Composable
