@@ -1,71 +1,158 @@
 package com.kutlu.kafemasraf;
 
 import android.app.Activity;
-import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.webkit.JavascriptInterface;
+import android.webkit.ValueCallback;
+import android.webkit.WebChromeClient;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.Toast;
 
-import androidx.browser.customtabs.CustomTabColorSchemeParams;
-import androidx.browser.customtabs.CustomTabsIntent;
+import androidx.core.content.FileProvider;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 /**
- * Kafe Masraf: masraf takip sayfasını Chrome'un uygulama içi sekmesinde açar.
- * Chrome'daki Claude girişi kullanıldığı için sayfa sahibi kayıt girebilir,
- * diğerleri yalnızca görüntüler. Veriler her zaman güncel sayfadan gelir.
+ * Kafe Masraf: internetsiz çalışan bağımsız uygulama.
+ * Veriler tabletin içinde (uygulama klasöründe data.json) saklanır.
  */
 public class MainActivity extends Activity {
 
-    private static final String URL = "https://claude.ai/artifact/NmTZra4bS3W38BT8fujGuH";
-    private boolean leftForTab = false;
+    private static final int PICK_FILE = 41;
+    private WebView web;
+    private ValueCallback<Uri[]> fileCallback;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        openPage();
+        web = new WebView(this);
+        setContentView(web);
+
+        WebSettings s = web.getSettings();
+        s.setJavaScriptEnabled(true);
+        s.setDomStorageEnabled(true);
+        s.setAllowFileAccess(true);
+        s.setTextZoom(100);
+
+        web.setWebViewClient(new WebViewClient());
+        web.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
+                if (fileCallback != null) fileCallback.onReceiveValue(null);
+                fileCallback = callback;
+                Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                i.addCategory(Intent.CATEGORY_OPENABLE);
+                i.setType("*/*");
+                try {
+                    startActivityForResult(i, PICK_FILE);
+                } catch (Exception e) {
+                    fileCallback = null;
+                    return false;
+                }
+                return true;
+            }
+        });
+        web.addJavascriptInterface(new Bridge(), "Android");
+        web.loadUrl("file:///android_asset/index.html");
     }
 
     @Override
-    protected void onNewIntent(Intent intent) {
-        super.onNewIntent(intent);
-        openPage();
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == PICK_FILE && fileCallback != null) {
+            Uri[] r = null;
+            if (resultCode == RESULT_OK && data != null && data.getData() != null) r = new Uri[]{data.getData()};
+            fileCallback.onReceiveValue(r);
+            fileCallback = null;
+            return;
+        }
+        super.onActivityResult(requestCode, resultCode, data);
     }
 
-    @Override
-    protected void onStop() {
-        super.onStop();
-        leftForTab = true;
+    private File dataFile() { return new File(getFilesDir(), "data.json"); }
+    private File backupFile() { return new File(getFilesDir(), "data.prev.json"); }
+
+    private static String read(File f) throws IOException {
+        byte[] b = new byte[(int) f.length()];
+        try (FileInputStream in = new FileInputStream(f)) {
+            int off = 0, n;
+            while (off < b.length && (n = in.read(b, off, b.length - off)) > 0) off += n;
+        }
+        return new String(b, StandardCharsets.UTF_8);
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        // Kullanıcı sekmeyi kapatıp geri geldiyse uygulamayı kapat.
-        if (leftForTab) finish();
+    private static void write(File f, String s) throws IOException {
+        File tmp = new File(f.getPath() + ".tmp");
+        try (FileOutputStream out = new FileOutputStream(tmp)) {
+            out.write(s.getBytes(StandardCharsets.UTF_8));
+            out.getFD().sync();
+        }
+        if (!tmp.renameTo(f)) throw new IOException("rename");
     }
 
-    private void openPage() {
-        leftForTab = false;
-        Uri uri = Uri.parse(URL);
-        CustomTabColorSchemeParams colors = new CustomTabColorSchemeParams.Builder()
-                .setToolbarColor(0xFF7A4A24)
-                .setNavigationBarColor(0xFF7A4A24)
-                .build();
-        CustomTabsIntent tab = new CustomTabsIntent.Builder()
-                .setDefaultColorSchemeParams(colors)
-                .setShowTitle(true)
-                .setUrlBarHidingEnabled(true)
-                .setShareState(CustomTabsIntent.SHARE_STATE_OFF)
-                .build();
-        try {
-            tab.launchUrl(this, uri);
-        } catch (ActivityNotFoundException e) {
+    private class Bridge {
+        @JavascriptInterface
+        public synchronized String load() {
             try {
-                startActivity(new Intent(Intent.ACTION_VIEW, uri));
-            } catch (ActivityNotFoundException e2) {
-                Toast.makeText(this, "Tarayıcı bulunamadı. Lütfen Chrome'u yükleyin.", Toast.LENGTH_LONG).show();
-                finish();
+                File f = dataFile();
+                if (f.exists()) return read(f);
+                File p = backupFile();
+                if (p.exists()) return read(p);
+            } catch (IOException ignored) { }
+            return "";
+        }
+
+        @JavascriptInterface
+        public synchronized void save(String json) {
+            try {
+                File f = dataFile();
+                if (f.exists()) {
+                    File p = backupFile();
+                    p.delete();
+                    f.renameTo(p);
+                }
+                write(f, json);
+            } catch (IOException e) {
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, "Kaydedilemedi!", Toast.LENGTH_LONG).show());
+            }
+        }
+
+        @JavascriptInterface
+        public void shareText(String text) {
+            runOnUiThread(() -> {
+                Intent i = new Intent(Intent.ACTION_SEND);
+                i.setType("text/plain");
+                i.putExtra(Intent.EXTRA_TEXT, text);
+                startActivity(Intent.createChooser(i, "Özeti paylaş"));
+            });
+        }
+
+        @JavascriptInterface
+        public void shareFile(String name, String content, String mime) {
+            try {
+                File dir = new File(getCacheDir(), "share");
+                dir.mkdirs();
+                File f = new File(dir, name.replaceAll("[^A-Za-z0-9._-]", "_"));
+                try (FileOutputStream out = new FileOutputStream(f)) {
+                    out.write(content.getBytes(StandardCharsets.UTF_8));
+                }
+                Uri uri = FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".files", f);
+                runOnUiThread(() -> {
+                    Intent i = new Intent(Intent.ACTION_SEND);
+                    i.setType(mime);
+                    i.putExtra(Intent.EXTRA_STREAM, uri);
+                    i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    startActivity(Intent.createChooser(i, "Dosyayı gönder / kaydet"));
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, "Dosya hazırlanamadı.", Toast.LENGTH_LONG).show());
             }
         }
     }

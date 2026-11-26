@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kafe Ortaklık Masraf Takibi</title>
+<style id="css">
+:root{--bg:#f6f4f0;--card:#fff;--ink:#1f1d1a;--mute:#6f6a62;--line:#e6e1d8;--acc:#7a4a24;--pos:#1d7a46;--neg:#b23a2b;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:760px;margin:0 auto;padding:16px 14px 60px}
+h1{font-size:20px;margin:4px 0 2px}
+.sub{color:var(--mute);font-size:13px;margin-bottom:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
+.card h2{font-size:15px;margin:0 0 10px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:620px){.grid{grid-template-columns:repeat(4,1fr)}}
+.p{border:1px solid var(--line);border-radius:10px;padding:10px}
+.p .n{font-weight:600;font-size:14px}
+.p .v{font-size:18px;font-weight:700;margin-top:2px}
+.p .d{font-size:12px;margin-top:2px}
+.pos{color:var(--pos)}.neg{color:var(--neg)}.mute{color:var(--mute)}
+.tot{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px 14px;margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);font-size:14px}
+form{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+form .full{grid-column:1/-1}
+label{font-size:12px;color:var(--mute);display:block;margin-bottom:3px}
+input,select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;background:#fff;color:var(--ink)}
+button{font:inherit;border:0;border-radius:8px;padding:10px 14px;cursor:pointer}
+.btn{background:var(--acc);color:#fff;font-weight:600}
+.btn2{background:#efe9e0;color:var(--ink)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;color:var(--mute);font-weight:600}
+td.r,th.r{text-align:right;white-space:nowrap}
+.x{background:none;color:var(--neg);padding:2px 6px;font-size:16px}
+.e{background:none;color:var(--acc);padding:2px 6px;font-size:14px}
+.note{font-size:12px;color:var(--mute);margin-top:8px}
+.banner{background:#fff4d6;border:1px solid #ecd58f;border-radius:10px;padding:8px 10px;font-size:13px;margin-bottom:12px}
+.status{font-size:12px;color:var(--mute);min-height:16px}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{flex:1;border-radius:0;background:#fff;color:var(--ink);padding:9px 6px}
+.seg button.on{background:var(--acc);color:#fff;font-weight:600}
+.tag{display:inline-block;font-size:11px;padding:1px 6px;border-radius:6px;margin-right:4px;font-weight:600}
+.tag.m{background:#e7f0ea;color:#1d5e3a}.tag.t{background:#f3e6da;color:#7a4a24}.tag.d{background:#e8e8ef;color:#44465a}
+.small{font-size:12px;color:var(--mute)}
+.filters{display:flex;gap:6px}
+.filters select{width:auto;max-width:150px;padding:6px 8px;font-size:13px}
+.sform{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="application/json" id="state">{"partners": ["Berat", "Muhammet", "Hamza", "Haluk"], "items": [{"id": 15, "k": "d", "p": 0, "a": 2400000, "d": "Kira", "t": ""}, {"id": 16, "k": "d", "p": 0, "a": 250000, "d": "Emlakçı", "t": "2026-08-03"}, {"id": 17, "k": "t", "p": 0, "a": 50000, "d": "Reklamcı Cemil", "t": "2026-08-24", "s": 7}, {"id": 18, "k": "t", "p": 3, "a": 25000, "d": "Hasan Aldemir Çelik Projeci", "t": "2026-08-28", "s": 10}, {"id": 19, "k": "t", "p": 1, "a": 13600, "d": "Haritacı ödemesi", "t": "2026-09-10", "s": 9}, {"id": 20, "k": "d", "p": 1, "a": 2500, "d": "Nakliye", "t": "2026-09-10"}, {"id": 21, "k": "t", "p": 1, "a": 40000, "d": "Zemin etüdü", "t": "2026-09-08", "s": 11}, {"id": 22, "k": "t", "p": 1, "a": 40000, "d": "İç mimar ödemesi", "t": "2026-09-07", "s": 8}, {"id": 23, "k": "t", "p": 1, "a": 17500, "d": "Kepçeci", "t": "2026-09-10", "s": 5}, {"id": 24, "k": "d", "p": 1, "a": 200000, "d": "Kira", "t": "2026-07-29"}, {"id": 25, "k": "m", "p": 1, "a": 166400, "d": "İnşaat demiri", "t": "2026-09-11"}, {"id": 26, "k": "m", "p": 1, "a": 51940, "d": "Beton", "t": "2026-09-11"}, {"id": 27, "k": "t", "p": 1, "a": 15000, "d": "Kalıpçı Naim", "t": "2026-09-16", "s": 2}, {"id": 28, "k": "t", "p": 1, "a": 380000, "d": "Çelikçi Hüseyin", "t": "2026-09-17", "s": 1}, {"id": 29, "k": "t", "p": 1, "a": 40000, "d": "Kalıpçı Naim", "t": "2026-09-18", "s": 2}, {"id": 30, "k": "m", "p": 1, "a": 720, "d": "Nalbur", "t": "2026-09-22"}, {"id": 31, "k": "t", "p": 1, "a": 70000, "d": "Çelikçi Hüseyin", "t": "2026-09-23", "s": 1}, {"id": 32, "k": "m", "p": 1, "a": 14100, "d": "Kereste ve nakliyesi", "t": "2026-09-24"}, {"id": 33, "k": "t", "p": 1, "a": 7000, "d": "Kalıpçı ve betoncu ödemesi elden", "t": "2026-09-25", "s": 4}, {"id": 34, "k": "t", "p": 1, "a": 60000, "d": "Kalıpçı Fatih", "t": "2026-09-25", "s": 3}, {"id": 35, "k": "t", "p": 1, "a": 30000, "d": "Kepçeci", "t": "2026-09-29", "s": 5}, {"id": 36, "k": "t", "p": 1, "a": 200000, "d": "Çelikçi Hüseyin", "t": "2026-09-30", "s": 1}, {"id": 37, "k": "t", "p": 1, "a": 236000, "d": "Çelikçi Hüseyin", "t": "2026-10-02", "s": 1}, {"id": 38, "k": "t", "p": 1, "a": 50000, "d": "Reklamcı Cemil", "t": "2026-10-02", "s": 7}, {"id": 39, "k": "d", "p": 1, "a": 15000, "d": "İnceci kira ödemesi", "t": "2026-10-03"}, {"id": 40, "k": "d", "p": 2, "a": 1000000, "d": "Kira", "t": "2026-08-06"}, {"id": 41, "k": "d", "p": 2, "a": 126857, "d": "Tapu ödemesi", "t": "2026-08-20"}, {"id": 42, "k": "d", "p": 2, "a": 25000, "d": "", "t": "2026-08-27"}, {"id": 43, "k": "t", "p": 2, "a": 30000, "d": "İç mimar ödemesi", "t": "2026-08-29", "s": 8}, {"id": 44, "k": "m", "p": 2, "a": 1300, "d": "Nalbur", "t": "2026-09-11"}, {"id": 45, "k": "t", "p": 2, "a": 100000, "d": "Çelikçi Hüseyin", "t": "2026-09-11", "s": 1}, {"id": 46, "k": "t", "p": 2, "a": 200000, "d": "Çelikçi Hüseyin", "t": "2026-09-14", "s": 1}, {"id": 47, "k": "m", "p": 2, "a": 475, "d": "Nalbur", "t": "2026-09-17"}, {"id": 48, "k": "m", "p": 2, "a": 177263, "d": "Beton Ödemesi", "t": "2026-09-18"}, {"id": 49, "k": "m", "p": 2, "a": 700, "d": "Nalbur", "t": "2026-09-19"}, {"id": 50, "k": "t", "p": 2, "a": 10500, "d": "Kepçeci", "t": "2026-09-21", "s": 5}, {"id": 51, "k": "d", "p": 2, "a": 1100, "d": "Yemek Ödemesi", "t": "2026-09-24"}, {"id": 52, "k": "m", "p": 2, "a": 600, "d": "Nalbur", "t": "2026-09-24"}, {"id": 53, "k": "t", "p": 2, "a": 5450, "d": "Desenci", "t": "2026-09-27", "s": 6}, {"id": 54, "k": "m", "p": 2, "a": 620, "d": "Nalbur", "t": "2026-10-03"}, {"id": 55, "k": "t", "p": 2, "a": 5000, "d": "Kepçeci", "t": "2026-10-03", "s": 5}, {"id": 56, "k": "m", "p": 3, "a": 118000, "d": "Beton Ödemesi", "t": "2026-09-25"}, {"id": 57, "k": "t", "p": 3, "a": 3000, "d": "Beton pompacı yevmiye", "t": "2026-09-25", "s": 14}, {"id": 58, "k": "m", "p": 3, "a": 900, "d": "Nalbur", "t": "2026-09-25"}, {"id": 59, "k": "t", "p": 3, "a": 30000, "d": "Haritacı likap ödemesi", "t": "2026-08-14", "s": 9}, {"id": 60, "k": "t", "p": 0, "a": 100000, "d": "Çelikçi Hüseyin", "t": "2026-10-03", "s": 1}, {"id": 61, "k": "t", "p": 1, "a": 32000, "d": "Çelikçi Hüseyin", "t": "2026-10-05", "s": 1}, {"id": 62, "k": "t", "p": 2, "a": 48428, "d": "Sandalyeci", "t": "2026-10-06", "s": 160}, {"id": 63, "k": "m", "p": 3, "a": 246200, "d": "Bims ödemesi", "t": "2026-10-06"}, {"id": 64, "k": "t", "p": 2, "a": 21313, "d": "Sandalyeci", "t": "2026-10-06", "s": 160}, {"id": 65, "k": "d", "p": 3, "a": 3000, "d": "Ağaç budama", "t": "2026-10-06"}, {"id": 66, "k": "t", "p": 2, "a": 17840, "d": "Sandalyeci", "t": "2026-10-06", "s": 160}, {"id": 67, "k": "m", "p": 1, "a": 1700, "d": "Nalbur", "t": "2026-10-07"}, {"id": 68, "k": "m", "p": 1, "a": 2250, "d": "Nalbur", "t": "2026-10-07"}, {"id": 69, "k": "t", "p": 1, "a": 73500, "d": "Kalıpçı", "t": "2026-10-07", "s": 4}, {"id": 70, "k": "m", "p": 1, "a": 8640, "d": "Mıcır", "t": "2026-10-08"}, {"id": 71, "k": "m", "p": 1, "a": 204000, "d": "Beton", "t": "2026-10-08"}, {"id": 72, "k": "d", "p": 2, "a": 1500, "d": "İşçilere yemek", "t": "2026-10-08"}, {"id": 73, "k": "m", "p": 1, "a": 2200, "d": "Nalbur", "t": "2026-10-08"}, {"id": 74, "k": "m", "p": 0, "a": 1600, "d": "Nalbur", "t": "2026-10-08"}, {"id": 75, "k": "t", "p": 1, "a": 150000, "d": "Çelikçi Hüseyin", "t": "2026-10-09", "s": 1}, {"id": 76, "k": "t", "p": 2, "a": 4500, "d": "Kepçeci", "t": "2026-10-09", "s": 5}, {"id": 77, "k": "t", "p": 1, "a": 15000, "d": "Kalıpçı", "t": "2026-10-09", "s": 4}, {"id": 78, "k": "t", "p": 2, "a": 50000, "d": "Çelikçi Hüseyin", "t": "2026-10-10", "s": 1}, {"id": 79, "k": "d", "p": 1, "a": 5000, "d": "Kira", "t": "2026-10-10"}, {"id": 80, "k": "t", "p": 1, "a": 10000, "d": "Çelikçi Hüseyin", "t": "2026-10-10", "s": 1}, {"id": 81, "k": "d", "p": 1, "a": 1300, "d": "İşçilere yemek", "t": "2026-10-10"}, {"id": 82, "k": "t", "p": 2, "a": 8750, "d": "Kepçeci", "t": "2026-10-10", "s": 5}, {"id": 83, "k": "d", "p": 2, "a": 28940, "d": "Patent", "t": "2026-10-10"}, {"id": 84, "k": "d", "p": 0, "a": 1210, "d": "İşçilere yemek", "t": "2026-10-10"}, {"id": 85, "k": "d", "p": 2, "a": 3130, "d": "İşçilere yemek", "t": "2026-10-10"}, {"id": 86, "k": "d", "p": 0, "a": 795, "d": "İşçilere yemek", "t": "2026-10-11"}, {"id": 87, "k": "d", "p": 2, "a": 600, "d": "İşçilere yemek", "t": "2026-10-11"}, {"id": 88, "k": "m", "p": 2, "a": 28000, "d": "Kum", "t": "2026-10-12"}, {"id": 89, "k": "t", "p": 2, "a": 5000, "d": "Kepçeci", "t": "2026-10-12", "s": 5}, {"id": 90, "k": "m", "p": 3, "a": 20000, "d": "Cesan demir", "t": "2026-10-13"}, {"id": 91, "k": "t", "p": 1, "a": 75000, "d": "Çelikçi Hüseyin", "t": "2026-10-13", "s": 1}, {"id": 92, "k": "d", "p": 3, "a": 20000, "d": "Emlakçı", "t": "2026-10-14"}, {"id": 93, "k": "d", "p": 1, "a": 28000, "d": "Kira", "t": "2026-10-14"}, {"id": 94, "k": "t", "p": 1, "a": 25000, "d": "Çelikçi Hüseyin", "t": "2026-10-15", "s": 1}, {"id": 95, "k": "m", "p": 2, "a": 1100, "d": "Nalbur", "t": "2026-10-16"}, {"id": 96, "k": "t", "p": 1, "a": 25000, "d": "Çelikçi Hüseyin", "t": "2026-10-16", "s": 1}, {"id": 97, "k": "m", "p": 2, "a": 26650, "d": "Kum", "t": "2026-10-17"}, {"id": 98, "k": "m", "p": 2, "a": 19000, "d": "Nalbur", "t": "2026-10-17"}, {"id": 99, "k": "m", "p": 0, "a": 1700, "d": "Nalbur – Geçmiş tarihli ödeme. Yazılmamıştı", "t": "2026-10-17"}, {"id": 100, "k": "m", "p": 2, "a": 600, "d": "Nalbur", "t": "2026-10-18"}, {"id": 101, "k": "m", "p": 1, "a": 610, "d": "Nalbur", "t": "2026-10-18"}, {"id": 102, "k": "m", "p": 1, "a": 6000, "d": "Kereste", "t": "2026-10-18"}, {"id": 103, "k": "d", "p": 2, "a": 2500, "d": "Nakliye", "t": "2026-10-18"}, {"id": 104, "k": "m", "p": 2, "a": 8100, "d": "Çimento", "t": "2026-10-18"}, {"id": 105, "k": "t", "p": 2, "a": 10000, "d": "Süleyman dekorasyoncu – iskele ödemesi", "t": "2026-10-18", "s": 6}, {"id": 106, "k": "t", "p": 1, "a": 250000, "d": "Süleyman dekorasyoncu", "t": "2026-10-18", "s": 6}, {"id": 107, "k": "d", "p": 1, "a": 890, "d": "İşçilere yemek", "t": "2026-10-19"}, {"id": 108, "k": "t", "p": 2, "a": 25000, "d": "Şap ödemesi", "t": "2026-10-19", "s": 13}, {"k": "d", "p": 2, "a": 1500, "d": "Nakliye", "t": "2026-10-19", "id": 109}, {"k": "t", "p": 1, "a": 100000, "d": "", "t": "2026-10-19", "s": 6, "id": 110}, {"k": "t", "p": 2, "a": 100000, "d": "", "t": "2026-10-19", "id": 115, "s": 1}, {"k": "m", "p": 0, "a": 720, "d": "Elektrik Borusu", "t": "2026-10-20", "id": 116}, {"k": "t", "p": 1, "a": 35000, "d": "", "t": "2026-10-20", "s": 113, "id": 117}, {"k": "m", "p": 2, "a": 2560, "d": "Elektrik kablosu", "t": "2026-10-20", "id": 118}, {"k": "d", "p": 2, "a": 105000, "d": "Nalbur Ödemesi", "t": "2026-10-20", "id": 119}, {"k": "m", "p": 1, "a": 12500, "d": "Kereste", "t": "2026-10-21", "id": 120}, {"k": "m", "p": 2, "a": 1750, "d": "Mıcır", "t": "2026-10-21", "id": 121}, {"k": "m", "p": 2, "a": 4000, "d": "Mıcır", "t": "2026-10-22", "id": 122}, {"k": "d", "p": 2, "a": 500, "d": "Nalbur", "t": "2026-10-22", "id": 123}, {"k": "d", "p": 0, "a": 700, "d": "Mermerci Nakliye", "t": "2026-10-22", "id": 124}, {"k": "d", "p": 1, "a": 4030, "d": "Nalbur su varili yemek", "t": "2026-10-22", "id": 125}, {"k": "d", "p": 2, "a": 400, "d": "market", "t": "2026-10-22", "id": 126}, {"k": "t", "p": 1, "a": 15000, "d": "", "t": "2026-10-22", "id": 127, "s": 113}, {"k": "t", "p": 2, "a": 50000, "d": "", "t": "2026-10-22", "s": 1, "id": 128}, {"k": "d", "p": 1, "a": 500, "d": "nalbur", "t": "2026-10-23", "id": 129}, {"k": "d", "p": 2, "a": 580, "d": "nalbur", "t": "2026-10-23", "id": 130}, {"k": "m", "p": 2, "a": 134000, "d": "Elektrik malzeme", "t": "2026-10-23", "id": 131}, {"k": "d", "p": 1, "a": 3573, "d": "nalbur ve yemek", "t": "2026-10-23", "id": 132}, {"k": "t", "p": 1, "a": 60000, "d": "duvar ödemesi", "t": "2026-10-24", "s": 133, "id": 134}, {"k": "d", "p": 1, "a": 5000, "d": "nakliye", "t": "2026-10-24", "id": 135}, {"k": "t", "p": 1, "a": 15000, "d": "", "t": "2026-10-24", "s": 113, "id": 136}, {"k": "d", "p": 1, "a": 7660, "d": "nalbur market", "t": "2026-10-25", "id": 137}, {"k": "d", "p": 2, "a": 1780, "d": "market", "t": "2026-10-25", "id": 138}, {"k": "d", "p": 3, "a": 17550, "d": "nalbur yemek", "t": "2026-10-25", "id": 139}, {"k": "t", "p": 1, "a": 3240, "d": "", "t": "2026-10-26", "s": 6, "id": 140}, {"k": "t", "p": 1, "a": 3000, "d": "", "t": "2026-10-26", "s": 1, "id": 141}, {"k": "t", "p": 1, "a": 27500, "d": "", "t": "2026-10-26", "s": 6, "id": 142}, {"k": "d", "p": 1, "a": 1920, "d": "nalbur", "t": "2026-10-26", "id": 143}, {"k": "t", "p": 2, "a": 22000, "d": "", "t": "2026-10-26", "s": 4, "id": 144}, {"k": "d", "p": 2, "a": 2710, "d": "nalbur", "t": "2026-10-27", "id": 145}, {"k": "t", "p": 1, "a": 26000, "d": "", "t": "2026-10-27", "s": 6, "id": 146}, {"k": "t", "p": 3, "a": 190000, "d": "", "t": "2026-10-28", "s": 6, "id": 147}, {"k": "t", "p": 1, "a": 5000, "d": "hüseyin demir yaptı", "t": "2026-10-28", "s": 6, "id": 148}, {"k": "t", "p": 2, "a": 30000, "d": "", "t": "2026-10-29", "s": 1, "id": 149}, {"k": "d", "p": 0, "a": 1400, "d": "ustalara baklava", "t": "2026-10-29", "id": 150}, {"k": "d", "p": 1, "a": 12326, "d": "nalbur", "t": "2026-10-30", "id": 151}, {"k": "t", "p": 1, "a": 4250, "d": "spiral alındı", "t": "2026-10-30", "s": 113, "id": 152}, {"k": "t", "p": 1, "a": 8000, "d": "", "t": "2026-10-31", "s": 6, "id": 153}, {"k": "t", "p": 0, "a": 30000, "d": "", "t": "2026-11-02", "s": 113, "id": 154}, {"k": "t", "p": 1, "a": 800, "d": "", "t": "2026-11-02", "s": 6, "id": 155}, {"k": "d", "p": 1, "a": 855, "d": "nalbur", "t": "2026-11-02", "id": 156}, {"k": "t", "p": 0, "a": 2625, "d": "", "t": "2026-11-03", "s": 6, "id": 157}, {"k": "t", "p": 1, "a": 170000, "d": "", "t": "2026-11-03", "s": 158, "id": 159}, {"k": "t", "p": 1, "a": 150000, "d": "", "t": "2026-11-03", "s": 160, "id": 161}, {"k": "d", "p": 3, "a": 3000, "d": "nakliye", "t": "2026-11-03", "id": 162}, {"k": "m", "p": 3, "a": 19000, "d": "beton", "t": "2026-11-03", "id": 163}, {"k": "m", "p": 3, "a": 1400, "d": "elektrik", "t": "2026-11-03", "id": 164}, {"k": "t", "p": 0, "a": 1110, "d": "", "t": "2026-11-04", "s": 113, "id": 165}, {"k": "m", "p": 1, "a": 60000, "d": "elektrik malzeme", "t": "2026-11-04", "id": 166}, {"k": "t", "p": 3, "a": 10000, "d": "", "t": "2026-11-04", "id": 167, "s": 113}, {"k": "t", "p": 3, "a": 10000, "d": "", "t": "2026-11-04", "id": 168, "s": 113}, {"k": "t", "p": 1, "a": 10000, "d": "", "t": "2026-11-04", "s": 113, "id": 169}, {"k": "d", "p": 2, "a": 34000, "d": "nakliye", "t": "2026-11-04", "id": 170}, {"k": "d", "p": 2, "a": 1300, "d": "nalbur", "t": "2026-11-05", "id": 171}, {"k": "t", "p": 1, "a": 59500, "d": "", "t": "2026-11-05", "id": 172, "s": 6}, {"k": "t", "p": 1, "a": 350000, "d": "", "t": "2026-11-05", "s": 6, "id": 173}, {"k": "t", "p": 2, "a": 496000, "d": "", "t": "2026-11-06", "id": 175, "s": 174}, {"k": "t", "p": 2, "a": 3500, "d": "", "t": "2026-11-06", "s": 6, "id": 176}, {"k": "d", "p": 2, "a": 1500, "d": "nakliye", "t": "2026-11-06", "id": 177}, {"k": "t", "p": 0, "a": 30000, "d": "", "t": "2026-11-07", "s": 133, "id": 178}, {"k": "d", "p": 2, "a": 2000, "d": "yemek", "t": "2026-11-07", "id": 179}, {"k": "t", "p": 1, "a": 30000, "d": "", "t": "2026-11-08", "id": 180, "s": 113}, {"k": "t", "p": 1, "a": 30000, "d": "", "t": "2026-11-08", "s": 181, "id": 182}, {"k": "t", "p": 1, "a": 5560, "d": "fatura ödemesi", "t": "2026-11-09", "id": 183, "s": 6}, {"k": "t", "p": 1, "a": 9000, "d": "", "t": "2026-11-09", "s": 5, "id": 184}, {"k": "d", "p": 2, "a": 40887, "d": "mıcır", "t": "2026-11-09", "id": 185}, {"k": "t", "p": 3, "a": 250000, "d": "", "t": "2026-11-10", "s": 160, "id": 186}, {"k": "t", "p": 3, "a": 200000, "d": "", "t": "2026-11-10", "s": 6, "id": 187}, {"k": "d", "p": 2, "a": 850, "d": "nalbur", "t": "2026-11-10", "id": 188}, {"k": "t", "p": 3, "a": 400, "d": "elektrot", "t": "2026-11-10", "s": 6, "id": 189}, {"k": "t", "p": 3, "a": 2000, "d": "demir", "t": "2026-11-11", "s": 6, "id": 190}, {"k": "d", "p": 2, "a": 1375, "d": "nalbur", "t": "2026-11-11", "id": 191}, {"k": "d", "p": 0, "a": 2895, "d": "yemek", "t": "2026-11-11", "id": 192}, {"k": "d", "p": 3, "a": 20000, "d": "ayna ödemesi", "t": "2026-11-11", "id": 193}, {"k": "d", "p": 1, "a": 1600, "d": "nalbur", "t": "2026-11-12", "id": 194}, {"k": "t", "p": 0, "a": 1300, "d": "demir", "t": "2026-11-12", "s": 6, "id": 195}, {"k": "t", "p": 1, "a": 20000, "d": "", "t": "2026-11-12", "s": 113, "id": 196}, {"k": "t", "p": 3, "a": 200000, "d": "", "t": "2026-11-13", "s": 174, "id": 197}, {"k": "t", "p": 1, "a": 250000, "d": "", "t": "2026-11-13", "s": 174, "id": 198}, {"k": "d", "p": 2, "a": 110000, "d": "isu ceza ödemesi", "t": "2026-11-13", "id": 199}, {"k": "t", "p": 1, "a": 450, "d": "elektrot", "t": "2026-11-13", "s": 6, "id": 200}, {"k": "d", "p": 2, "a": 2000, "d": "Yemek", "t": "2026-11-12", "id": 201}], "subs": [{"id": 1, "n": "Çelikçi Hüseyin", "j": "Çelik", "c": 0}, {"id": 2, "n": "Kalıpçı Naim", "j": "Kalıp", "c": 0}, {"id": 3, "n": "Kalıpçı Fatih", "j": "Kalıp", "c": 0}, {"id": 4, "n": "Kalıpçı (isim yok)", "j": "Kalıp", "c": 0}, {"id": 5, "n": "Kepçeci", "j": "Kazı / kepçe", "c": 0}, {"id": 6, "n": "Süleyman Dekorasyoncu", "j": "Dekorasyon", "c": 3250000}, {"id": 7, "n": "Reklamcı Cemil", "j": "Reklam", "c": 0}, {"id": 8, "n": "İç Mimar", "j": "İç mimari", "c": 0}, {"id": 9, "n": "Haritacı", "j": "Harita", "c": 0}, {"id": 10, "n": "Hasan Aldemir", "j": "Çelik proje", "c": 0}, {"id": 11, "n": "Zemin Etüdü", "j": "Zemin etüdü", "c": 0}, {"id": 12, "n": "Desenci", "j": "Desen", "c": 0}, {"id": 13, "n": "Şapçı", "j": "Şap", "c": 0}, {"id": 14, "n": "Beton Pompacı", "j": "Pompa yevmiye", "c": 0}, {"n": "Elektrikçi", "j": "Elektrik", "c": 300000, "id": 113}, {"n": "Duvarcı Gökhan", "j": "duvar", "c": 0, "id": 133}, {"n": "Kariyer mutfak Samet", "j": "Mutfakçı", "c": 0, "id": 158}, {"n": "Sandalyeci Kaan", "j": "Sandalyeci", "c": 0, "id": 160}, {"n": "Pergoleci", "j": "", "c": 1750000, "id": 174}, {"n": "Tesisatçı sıhhi", "j": "su", "c": 75000, "id": 181}], "seq": 202}</script>
+<script id="app">
+(function(){
+var S=JSON.parse(document.getElementById('state').textContent);
+try{var _l=window.Android&&Android.load();if(_l){S=JSON.parse(_l)}}catch(e){}
+var CSS=document.getElementById('css').textContent;
+var APP=document.getElementById('app').textContent;
+var api=null, readOnly=false, mode='app', timer=null, pending=false;
+var editId=null, editSub=null, fP='all', fK='all', kind='m', showSubForm=false;
+var LS='kafe-masraf-yedek';
+var KN={m:'Malzeme',t:'Taşeron',d:'Diğer'};
+
+function norm(){S.subs=S.subs||[];S.items.forEach(function(it){if(!it.k)it.k='m'});}
+norm();
+
+function fmt(n){return (Math.round(n*100)/100).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})+' ₺'}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function today(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function trDate(s){if(!s)return'';var p=s.split('-');return p[2]+'.'+p[1]+'.'+p[0]}
+function num(v){var raw=String(v||'').trim().replace(/\s|₺/g,'');if(!raw)return NaN;
+  if(raw.indexOf(',')>=0)return parseFloat(raw.replace(/\./g,'').replace(',','.'));
+  if(/^\d{1,3}(\.\d{3})+$/.test(raw))return parseFloat(raw.replace(/\./g,''));
+  return parseFloat(raw);}
+function sub(id){return S.subs.find(function(s){return s.id===id})}
+function sumKind(k){return S.items.filter(function(i){return i.k===k}).reduce(function(a,b){return a+Number(b.a)},0)}
+function paidTo(id){return S.items.filter(function(i){return i.k==='t'&&i.s===id}).reduce(function(a,b){return a+Number(b.a)},0)}
+
+function render(){
+  var P=S.partners,h='';
+  var paid=P.map(function(){return 0});S.items.forEach(function(it){paid[it.p]+=Number(it.a)||0});
+  var total=paid.reduce(function(a,b){return a+b},0),avg=total/P.length;
+
+  h+='<div class="wrap"><h1>☕ Kafe Ortaklık Masraf Takibi</h1><div class="sub">Kim ne kadar harcadı, taşeronlara ne kadar ödendi, ne kadar kaldı</div>';
+  if(mode==='local'&&!readOnly)h+='<div class="banner">Kayıt sunucuya yapılamıyor; veriler yalnızca bu cihazda tutuluyor. Önemli kayıtlar için “Metin olarak kopyala” ile yedek alın.</div>';
+  if(readOnly&&mode!=='wait')h+='<div class="banner">👁 Sadece görüntüleme. Kayıtları yalnızca sayfa sahibi girebilir.</div>';
+
+  // Özet
+  h+='<div class="card"><h2>Ortakların masrafı</h2><div class="grid">';
+  P.forEach(function(n,i){var d=paid[i]-avg;
+    h+='<div class="p"><div class="n">'+esc(n)+'</div><div class="v">'+fmt(paid[i])+'</div><div class="d '+(d>0.004?'pos':d<-0.004?'neg':'mute')+'">'+(d>0.004?'Ortalamadan +'+fmt(d):d<-0.004?'Ortalamadan −'+fmt(-d):'Ortalamada')+'</div></div>';});
+  h+='</div><div class="tot"><span>Toplam: <b>'+fmt(total)+'</b></span><span>Malzeme: <b>'+fmt(sumKind('m'))+'</b></span><span>Taşeron: <b>'+fmt(sumKind('t'))+'</b></span><span>Diğer: <b>'+fmt(sumKind('d'))+'</b></span><span>Kişi başı (¼): <b>'+fmt(avg)+'</b></span></div></div>';
+
+  // Taşeronlar
+  h+='<div class="card"><div class="row" style="justify-content:space-between;margin-bottom:8px"><h2 style="margin:0">Taşeronlar</h2>'+(readOnly?'':'<button class="btn2" id="sAdd" style="padding:6px 10px;font-size:13px">+ Taşeron ekle</button>')+'</div>';
+  if(!S.subs.length)h+='<div class="mute">Henüz taşeron yok. Önce taşeronu anlaşılan tutarla ekleyin, sonra ödemeleri masraf olarak girin.</div>';
+  else{var tc=0,tp=0;
+    h+='<table><thead><tr><th>Taşeron / İş</th><th class="r">Anlaşma</th><th class="r">Ödenen</th><th class="r">Kalan</th>'+(readOnly?'':'<th></th>')+'</tr></thead><tbody>';
+    S.subs.forEach(function(s){var pd=paidTo(s.id),c=Number(s.c)||0,k=c-pd;tc+=c;tp+=pd;
+      h+='<tr><td><b>'+esc(s.n)+'</b>'+(s.j?'<div class="small">'+esc(s.j)+'</div>':'')+'</td><td class="r">'+(c?fmt(c):'<span class="mute">—</span>')+'</td><td class="r">'+fmt(pd)+'</td><td class="r '+(c?(k>0.004?'neg':k<-0.004?'neg':'pos'):'mute')+'">'+(c?(k<-0.004?'Fazla '+fmt(-k):k>0.004?fmt(k):'Bitti ✓'):'—')+'</td>'+(readOnly?'':'<td class="r"><button class="e" data-se="'+s.id+'" title="Düzenle">✎</button><button class="x" data-sx="'+s.id+'" title="Sil">×</button></td>')+'</tr>';});
+    h+='<tr><td><b>Toplam</b></td><td class="r"><b>'+fmt(tc)+'</b></td><td class="r"><b>'+fmt(tp)+'</b></td><td class="r"><b>'+fmt(Math.max(tc-tp,0))+'</b></td>'+(readOnly?'':'<td></td>')+'</tr></tbody></table>';
+    h+='<div class="note">Kalan = Anlaşma tutarı − Taşerona yapılan ödemeler</div>';}
+  if(!readOnly&&(showSubForm||editSub!=null)){var es=editSub!=null?sub(editSub):null;
+    h+='<form id="sf" class="sform"><div><label>Taşeron adı</label><input id="sn" placeholder="ör. Ahmet Usta" value="'+(es?esc(es.n):'')+'"></div>';
+    h+='<div><label>Yaptığı iş</label><input id="sj" placeholder="ör. Elektrik, alçı, seramik" value="'+(es?esc(es.j):'')+'"></div>';
+    h+='<div><label>Anlaşılan tutar (₺)</label><input id="sc" inputmode="decimal" placeholder="0,00" value="'+(es&&es.c?String(es.c).replace('.',','):'')+'"></div>';
+    h+='<div style="display:flex;align-items:end;gap:8px"><button class="btn" type="submit" style="flex:1">'+(es?'Kaydet':'Ekle')+'</button><button class="btn2" type="button" id="sc0">Vazgeç</button></div></form>';}
+  h+='<div class="status" id="sst"></div></div>';
+
+  // Masraf formu
+  var ed=editId!=null?S.items.find(function(x){return x.id===editId}):null;
+  if(ed)kind=ed._k||ed.k;
+  if(!readOnly){
+    h+='<div class="card"><h2>'+(ed?'Masrafı düzenle':'Masraf ekle')+'</h2><form id="f">';
+    h+='<div class="full"><div class="seg"><button type="button" data-k="m" class="'+(kind==='m'?'on':'')+'">Malzeme</button><button type="button" data-k="t" class="'+(kind==='t'?'on':'')+'">Taşeron</button><button type="button" data-k="d" class="'+(kind==='d'?'on':'')+'">Diğer</button></div></div>';
+    h+='<div><label>Kim ödedi</label><select id="fp">'+P.map(function(n,i){return'<option value="'+i+'"'+(ed&&ed.p===i?' selected':'')+'>'+esc(n)+'</option>'}).join('')+'</select></div>';
+    h+='<div><label>Tutar (₺)</label><input id="fa" inputmode="decimal" placeholder="0,00" value="'+(ed?String(ed.a).replace('.',','):'')+'"></div>';
+    if(kind==='t'){
+      if(!S.subs.length)h+='<div class="full banner" style="margin:0">Önce yukarıdan bir taşeron ekleyin.</div>';
+      else h+='<div class="full"><label>Taşeron</label><select id="fs">'+S.subs.map(function(s){return'<option value="'+s.id+'"'+(ed&&ed.s===s.id?' selected':'')+'>'+esc(s.n)+(s.j?' — '+esc(s.j):'')+'</option>'}).join('')+'</select></div>';
+    }
+    h+='<div class="full"><label>Açıklama</label><input id="fd" placeholder="'+(kind==='t'?'ör. 1. hakediş, avans':kind==='d'?'ör. Kira, tapu, yemek':'ör. Seramik, boya, kablo')+'" value="'+(ed?esc(ed.d):'')+'"></div>';
+    h+='<div><label>Tarih</label><input id="ft" type="date" value="'+(ed?ed.t:today())+'"></div>';
+    h+='<div style="display:flex;align-items:end;gap:8px"><button class="btn" type="submit" style="flex:1">'+(ed?'Kaydet':'Ekle')+'</button>'+(ed?'<button class="btn2" type="button" id="fc">Vazgeç</button>':'')+'</div>';
+    h+='</form><div class="status" id="st"></div></div>';
+  }
+
+  // Liste
+  var list=S.items.slice().sort(function(a,b){return (b.t||'').localeCompare(a.t||'')||b.id-a.id});
+  if(fP!=='all')list=list.filter(function(x){return x.p===Number(fP)});
+  if(fK!=='all')list=list.filter(function(x){return x.k===fK});
+  h+='<div class="card"><div class="row" style="justify-content:space-between;margin-bottom:8px"><h2 style="margin:0">Masraflar ('+S.items.length+')</h2><div class="filters"><select id="flk"><option value="all">Tüm türler</option><option value="m"'+(fK==='m'?' selected':'')+'>Malzeme</option><option value="t"'+(fK==='t'?' selected':'')+'>Taşeron</option><option value="d"'+(fK==='d'?' selected':'')+'>Diğer</option></select><select id="flt"><option value="all">Herkes</option>'+P.map(function(n,i){return'<option value="'+i+'"'+(fP===String(i)?' selected':'')+'>'+esc(n)+'</option>'}).join('')+'</select></div></div>';
+  if(!list.length)h+='<div class="mute">Kayıt yok.</div>';
+  else{h+='<table><thead><tr><th>Tarih</th><th>Kim</th><th>Açıklama</th><th class="r">Tutar</th>'+(readOnly?'':'<th></th>')+'</tr></thead><tbody>';
+    list.forEach(function(it){var s=it.k==='t'?sub(it.s):null;
+      h+='<tr><td>'+trDate(it.t)+'</td><td>'+esc(P[it.p])+'</td><td><span class="tag '+it.k+'">'+KN[it.k]+'</span>'+(s?'<b>'+esc(s.n)+'</b> ':'')+esc(it.d)+'</td><td class="r">'+fmt(it.a)+'</td>'+(readOnly?'':'<td class="r"><button class="e" data-e="'+it.id+'" title="Düzenle">✎</button><button class="x" data-x="'+it.id+'" title="Sil">×</button></td>')+'</tr>'});
+    if(fP!=='all'||fK!=='all'){var sm=list.reduce(function(a,b){return a+Number(b.a)},0);h+='<tr><td colspan="3"><b>Toplam</b></td><td class="r"><b>'+fmt(sm)+'</b></td>'+(readOnly?'':'<td></td>')+'</tr>'}
+    h+='</tbody></table>';}
+  h+='<div id="del" style="margin-top:6px"></div></div>';
+
+  // Ayarlar
+  h+='<div class="card"><h2>Ortaklar ve dışa aktarma</h2>';
+  if(!readOnly){h+='<div class="grid">'+P.map(function(n,i){return'<div><label>Ortak '+(i+1)+'</label><input data-n="'+i+'" value="'+esc(n)+'"></div>'}).join('')+'</div>';}
+  h+='<div class="row" style="margin-top:10px"><button class="btn2" id="cp">Özeti paylaş (WhatsApp)</button><button class="btn2" id="cv">Excel (CSV) paylaş</button></div><div class="row" style="margin-top:8px"><button class="btn2" id="bk">Yedek al</button><button class="btn2" id="rs">Yedekten yükle</button><input type="file" id="rf" accept=".json,application/json,text/plain,*/*" style="display:none"></div><div class="status" id="cs"></div></div>';
+  h+='</div>';
+  document.getElementById('root').innerHTML=h;
+  bind();
+}
+
+function status(id,t){var e=document.getElementById(id);if(e)e.textContent=t}
+function confirmBox(msg,yes){var box=document.getElementById('del');
+  box.innerHTML='<div class="banner">'+msg+' <button class="btn" id="dy" style="padding:5px 10px;margin-left:6px">Sil</button> <button class="btn2" id="dn" style="padding:5px 10px">Vazgeç</button></div>';
+  box.scrollIntoView({behavior:'smooth',block:'center'});
+  document.getElementById('dy').onclick=yes;document.getElementById('dn').onclick=function(){box.innerHTML=''};}
+
+function bind(){
+  document.querySelectorAll('[data-k]').forEach(function(b){b.onclick=function(){
+    var keep={p:val('fp'),a:val('fa'),d:val('fd'),t:val('ft')};kind=b.dataset.k;
+    if(editId!=null){var it=S.items.find(function(x){return x.id===editId});it._k=kind}
+    renderKeep(keep);}});
+  var f=document.getElementById('f');
+  if(f)f.addEventListener('submit',function(ev){ev.preventDefault();
+    var a=num(val('fa'));
+    if(!(a>0)){status('st','Geçerli bir tutar girin.');return}
+    var rec={k:kind,p:Number(val('fp')),a:Math.round(a*100)/100,d:val('fd').trim(),t:val('ft')||today()};
+    if(kind==='t'){if(!S.subs.length){status('st','Önce bir taşeron ekleyin.');return}rec.s=Number(val('fs'))}
+    if(editId!=null){var it=S.items.find(function(x){return x.id===editId});delete it._k;delete it.s;Object.assign(it,rec);editId=null}
+    else{rec.id=S.seq++;S.items.push(rec)}
+    var keepP=rec.p,keepS=rec.s;render();var sel=document.getElementById('fp');if(sel)sel.value=keepP;var ss=document.getElementById('fs');if(ss&&keepS!=null)ss.value=keepS;save('st');});
+  var fc=document.getElementById('fc');if(fc)fc.onclick=function(){editId=null;render()};
+  document.querySelectorAll('[data-x]').forEach(function(b){b.onclick=function(){
+    var id=Number(b.dataset.x),it=S.items.find(function(x){return x.id===id});
+    confirmBox('“'+esc(it.d||KN[it.k])+'” ('+fmt(it.a)+') silinsin mi?',function(){S.items=S.items.filter(function(x){return x.id!==id});render();save('st')});}});
+  document.querySelectorAll('[data-e]').forEach(function(b){b.onclick=function(){editId=Number(b.dataset.e);render();document.getElementById('f').scrollIntoView({behavior:'smooth'})}});
+  var fl=document.getElementById('flt');if(fl)fl.onchange=function(){fP=fl.value;render()};
+  var fk=document.getElementById('flk');if(fk)fk.onchange=function(){fK=fk.value;render()};
+  // taşeron
+  var sa=document.getElementById('sAdd');if(sa)sa.onclick=function(){showSubForm=true;editSub=null;render();var n=document.getElementById('sn');if(n)n.focus()};
+  var s0=document.getElementById('sc0');if(s0)s0.onclick=function(){showSubForm=false;editSub=null;render()};
+  var sf=document.getElementById('sf');
+  if(sf)sf.addEventListener('submit',function(ev){ev.preventDefault();
+    var n=val('sn').trim();if(!n){status('sst','Taşeron adını girin.');return}
+    var c=num(val('sc'));c=c>0?Math.round(c*100)/100:0;
+    var rec={n:n,j:val('sj').trim(),c:c};
+    if(editSub!=null)Object.assign(sub(editSub),rec);else{rec.id=S.seq++;S.subs.push(rec)}
+    editSub=null;showSubForm=false;render();save('sst');});
+  document.querySelectorAll('[data-se]').forEach(function(b){b.onclick=function(){editSub=Number(b.dataset.se);showSubForm=false;render()}});
+  document.querySelectorAll('[data-sx]').forEach(function(b){b.onclick=function(){
+    var id=Number(b.dataset.sx);
+    if(S.items.some(function(i){return i.k==='t'&&i.s===id})){status('sst','Bu taşerona ait ödemeler var; önce o ödemeleri silin veya düzenleyin.');return}
+    confirmBox('“'+esc(sub(id).n)+'” taşeronu silinsin mi?',function(){S.subs=S.subs.filter(function(s){return s.id!==id});render();save('sst')});}});
+  document.querySelectorAll('[data-n]').forEach(function(inp){inp.onchange=function(){var v=inp.value.trim()||('Ortak '+(Number(inp.dataset.n)+1));S.partners[Number(inp.dataset.n)]=v;render();save('cs')}});
+  document.getElementById('cp').onclick=function(){shareText(textReport())};
+  document.getElementById('cv').onclick=function(){shareFile('kafe-masraf-'+today()+'.csv','\ufeff'+csv(),'text/csv')};
+  document.getElementById('bk').onclick=function(){shareFile('kafe-masraf-yedek-'+today()+'.json',JSON.stringify(S),'application/json');status('cs','Yedeği Drive, WhatsApp veya e-postaya kaydedin.')};
+  document.getElementById('rs').onclick=function(){document.getElementById('rf').click()};
+  document.getElementById('rf').onchange=function(ev){var f=ev.target.files[0];if(!f)return;var rd=new FileReader();rd.onload=function(){
+    var d;try{d=JSON.parse(rd.result)}catch(e){status('cs','Bu dosya geçerli bir yedek değil.');return}
+    if(!d||!Array.isArray(d.items)||!Array.isArray(d.partners)){status('cs','Bu dosya geçerli bir yedek değil.');return}
+    confirmBox('Yedekteki '+d.items.length+' kayıt yüklensin mi? Şu anki kayıtların yerine geçer.',function(){S=d;norm();render();save('cs');status('cs','Yedek yüklendi ✓')});
+    document.getElementById('dy').textContent='Yükle';};rd.readAsText(f)};
+}
+function val(id){var e=document.getElementById(id);return e?e.value:''}
+function renderKeep(k){render();['fp','fa','fd','ft'].forEach(function(id,i){var e=document.getElementById(id);var v=[k.p,k.a,k.d,k.t][i];if(e&&v!=='')e.value=v})}
+
+function textReport(){var P=S.partners,t='KAFE MASRAF ÖZETİ\n\n';
+  var paid=P.map(function(){return 0});S.items.forEach(function(it){paid[it.p]+=Number(it.a)||0});
+  P.forEach(function(n,i){t+=n+': '+fmt(paid[i])+'\n'});
+  var tot=paid.reduce(function(a,b){return a+b},0);
+  t+='\nToplam: '+fmt(tot)+'\nMalzeme: '+fmt(sumKind('m'))+'\nTaşeron: '+fmt(sumKind('t'))+'\nDiğer: '+fmt(sumKind('d'))+'\nKişi başı: '+fmt(tot/P.length)+'\n';
+  if(S.subs.length){t+='\nTAŞERONLAR (anlaşma / ödenen / kalan)\n';
+    S.subs.forEach(function(s){var pd=paidTo(s.id);t+='- '+s.n+(s.j?' ('+s.j+')':'')+': '+(s.c?fmt(s.c):'—')+' / '+fmt(pd)+' / '+(s.c?fmt(s.c-pd):'—')+'\n'});}
+  return t;}
+function csv(){var r=['Tarih;Kim;Tür;Taşeron;Açıklama;Tutar'];S.items.slice().sort(function(a,b){return(a.t||'').localeCompare(b.t||'')}).forEach(function(it){var s=it.k==='t'?sub(it.s):null;r.push([trDate(it.t),S.partners[it.p],KN[it.k],s?s.n:'','"'+String(it.d).replace(/"/g,'""')+'"',String(it.a).replace('.',',')].join(';'))});return r.join('\n')}
+function shareText(t){try{if(window.Android){Android.shareText(t);return}}catch(e){}copy(t,'Özet kopyalandı.')}
+function shareFile(n,c,m){try{if(window.Android){Android.shareFile(n,c,m);return}}catch(e){}copy(c,'Kopyalandı.')}
+function copy(t,msg){try{navigator.clipboard.writeText(t).then(function(){status('cs',msg)},function(){status('cs','Kopyalanamadı.')})}catch(e){status('cs','Kopyalanamadı.')}}
+
+function build(){
+  var clean=JSON.parse(JSON.stringify(S));clean.items.forEach(function(i){delete i._k});
+  var json=JSON.stringify(clean).replace(/</g,'\\u003c');
+  return '<!DOCTYPE html>\n<html lang="tr">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>Kafe Ortaklık Masraf Takibi</title>\n<style id="css">'+CSS+'</style>\n</head>\n<body>\n<div id="root"></div>\n<script type="application/json" id="state">'+json+'<\/script>\n<script id="app">'+APP+'<\/script>\n</body>\n</html>\n';
+}
+
+function save(sid){
+  try{if(window.Android){Android.save(JSON.stringify(S));status(sid,'Kaydedildi ✓');return}}catch(e){status(sid,'Kaydedilemedi!');return}
+  try{localStorage.setItem(LS,JSON.stringify(S));status(sid,'Kaydedildi ✓')}catch(e){status(sid,'Kaydedilemedi!')}
+}
+
+if(!window.Android){try{var l=localStorage.getItem(LS);if(l){S=JSON.parse(l)}}catch(e){}}
+norm();
+render();
+})();
+</script>
+</body>
+</html>

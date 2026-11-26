@@ -40,7 +40,7 @@ jobs:
           tag_name: kafe-masraf-apk
           target_commitish: kafe-masraf
           name: Kafe Masraf (APK)
-          body: Tablete/telefona KafeMasraf.apk dosyasını indirip kurun. Bu sürüm Pusula'dan ayrıdır.
+          body: Tablete KafeMasraf.apk dosyasını indirip kurun. İnternetsiz çalışır, veriler tablette saklanır. Pusula'dan ayrıdır.
           files: KafeMasraf.apk
           make_latest: false
           overwrite_files: true

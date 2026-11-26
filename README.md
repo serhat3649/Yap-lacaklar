@@ -1,5 +1,6 @@
 # Kafe Masraf
 
-Kafe ortaklığı masraf takip sayfasını açan Android uygulaması.
+Kafe ortaklığı masraf takibi — internetsiz çalışan bağımsız Android uygulaması.
+Veriler cihazda saklanır; "Yedek al" ile yedek dosyası alınabilir.
 
-İndirmek için: **Releases** bölümündeki en son sürümden `KafeMasraf.apk` dosyasını indirip kurun.
+İndir: Releases → `kafe-masraf-apk` → `KafeMasraf.apk`
