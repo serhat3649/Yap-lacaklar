@@ -76,6 +76,23 @@ public class MainActivity extends Activity {
         super.onActivityResult(requestCode, resultCode, data);
     }
 
+    private void sendToWhatsApp(Uri uri) {
+        Intent i = new Intent(Intent.ACTION_SEND);
+        i.setType("application/pdf");
+        i.putExtra(Intent.EXTRA_STREAM, uri);
+        i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        for (String pkg : new String[]{"com.whatsapp", "com.whatsapp.w4b"}) {
+            try {
+                Intent w = new Intent(i);
+                w.setPackage(pkg);
+                startActivity(w);
+                return;
+            } catch (android.content.ActivityNotFoundException ignored) { }
+        }
+        Toast.makeText(this, "WhatsApp bulunamadı, paylaşım menüsü açılıyor.", Toast.LENGTH_SHORT).show();
+        startActivity(Intent.createChooser(i, "PDF özeti gönder"));
+    }
+
     private File dataFile() { return new File(getFilesDir(), "data.json"); }
     private File backupFile() { return new File(getFilesDir(), "data.prev.json"); }
 
@@ -122,6 +139,22 @@ public class MainActivity extends Activity {
             } catch (IOException e) {
                 runOnUiThread(() -> Toast.makeText(MainActivity.this, "Kaydedilemedi!", Toast.LENGTH_LONG).show());
             }
+        }
+
+        @JavascriptInterface
+        public void sharePdf(String json, String name) {
+            new Thread(() -> {
+                try {
+                    File dir = new File(getCacheDir(), "share");
+                    dir.mkdirs();
+                    File f = new File(dir, name.replaceAll("[^A-Za-z0-9._-]", "_"));
+                    new PdfReport().write(new org.json.JSONObject(json), f);
+                    Uri uri = FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".files", f);
+                    runOnUiThread(() -> sendToWhatsApp(uri));
+                } catch (Exception e) {
+                    runOnUiThread(() -> Toast.makeText(MainActivity.this, "PDF oluşturulamadı: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                }
+            }).start();
         }
 
         @JavascriptInterface
