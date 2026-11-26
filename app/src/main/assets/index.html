@@ -336,7 +336,7 @@ function report(){var st=stats(),P=S.partners;
     kinds:st.kinds.map(function(x){return{n:KN[x.k],a:x.a,k:x.k}}),
     cats:st.cats,months:st.months.map(function(m){return{n:monthName(m.k),a:m.a}}),nodate:st.nodate,
     subs:S.subs.map(function(s){return{n:s.n,j:s.j||'',c:Number(s.c)||0,p:paidTo(s.id)}}).sort(function(a,b){return b.p-a.p}),
-    items:S.items.slice().sort(function(a,b){return(a.t||'').localeCompare(b.t||'')||a.id-b.id}).map(function(it){var s=it.k==='t'?sub(it.s):null;return{t:trDate(it.t),p:P[it.p],k:KN[it.k],c:it.c,d:(s?s.n+(it.d?' – ':''):'')+(it.d||''),a:it.a}})};}
+    items:S.items.slice().sort(function(a,b){if(!a.t!==!b.t)return a.t?-1:1;return(b.t||'').localeCompare(a.t||'')||b.id-a.id}).map(function(it){var s=it.k==='t'?sub(it.s):null;return{t:trDate(it.t),p:P[it.p],k:KN[it.k],c:it.c,d:(s?s.n+(it.d?' – ':''):'')+(it.d||''),a:it.a}})};}
 function sendPdf(){
   if(window.Android&&Android.sharePdf){status('gst','PDF hazırlanıyor…');Android.sharePdf(JSON.stringify(report()),'Kafe_Masraf_Ozet_'+today()+'.pdf');setTimeout(function(){status('gst','')},3000);return}
   status('gst','PDF yalnızca tablet uygulamasında oluşturulur.');}
